@@ -1,0 +1,9 @@
+#!/bin/bash
+#PBS -l walltime=00:00:03
+#PBS -l nodes=4:ppn=2
+#PBS -V
+cd $PBS_O_WORKDIR
+
+mpirun -np 8 -hostfile ${PBS_NODEFILE} ./dslash_test --tune false --test 0 --dslash_type twisted_mass --xdim 16 --ydim 16 --zdim 16 --tdim 16 --ygridsize 2 --zgridsize 2 --tgridsize 2 --prec double
+
+

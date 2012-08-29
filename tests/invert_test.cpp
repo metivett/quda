@@ -22,8 +22,11 @@
 
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
+using namespace quda;
+
 // In a typical application, quda.h is the only QUDA header required.
 #include <quda.h>
+#include <dslash_quda.h>
 
 // Wilson, clover-improved Wilson, twisted mass, and domain wall are supported.
 extern QudaDslashType dslash_type;
@@ -142,8 +145,12 @@ int main(int argc, char **argv)
   if (dslash_type == QUDA_TWISTED_MASS_DSLASH) {
     inv_param.mu = 0.01;
     inv_param.epsilon = 0.001;
-    //inv_param.twist_flavor = QUDA_TWIST_NONDEG_DOUBLET;
-    inv_param.twist_flavor = QUDA_TWIST_PLUS;    
+    inv_param.twist_flavor = QUDA_TWIST_NONDEG_DOUBLET;
+//!    
+    setKernelPackT(true);
+    inv_param.Ls = 2;
+//! 
+    //inv_param.twist_flavor = QUDA_TWIST_PLUS;    
   }else if (dslash_type == QUDA_DOMAIN_WALL_DSLASH) {
     inv_param.mass = 0.02;
     inv_param.m5 = -1.8;
@@ -339,9 +346,6 @@ int main(int argc, char **argv)
   if (dslash_type == QUDA_CLOVER_WILSON_DSLASH) printfQuda("   Clover: %f GiB\n", inv_param.cloverGiB);
   printfQuda("\nDone: %i iter / %g secs = %g Gflops, total time = %g secs\n", 
 	 inv_param.iter, inv_param.secs, inv_param.gflops/inv_param.secs, time0);
-
-  for(int i = 0; i < 24*V; i++)
-	  if(fabs(((double*)spinorOut)[i]) < 1e-3) printf("\nFound zero at %d\n", i);
 
   if (multi_shift) {
 

@@ -189,9 +189,6 @@ def def_gauge():
             str += "#define "+g_re(0,m,n)+" G"+nthFloat2(2*i+0)+"\n"
             str += "#define "+g_im(0,m,n)+" G"+nthFloat2(2*i+1)+"\n"
 
-    str += "// temporaries\n"
-    str += "#define A_re G"+nthFloat2(18)+"\n"
-    str += "#define A_im G"+nthFloat2(19)+"\n"
     str += "\n"
     str += "#else\n"
     for m in range(0,3):
@@ -200,9 +197,6 @@ def def_gauge():
             str += "#define "+g_re(0,m,n)+" G"+nthFloat4(2*i+0)+"\n"
             str += "#define "+g_im(0,m,n)+" G"+nthFloat4(2*i+1)+"\n"
 
-    str += "// temporaries\n"
-    str += "#define A_re G"+nthFloat4(18)+"\n"
-    str += "#define A_im G"+nthFloat4(19)+"\n"
     str += "\n"
     str += "#endif // GAUGE_DOUBLE\n\n"
             
@@ -847,7 +841,6 @@ def to_chiral_basis(v_out,v_in,c):
     return block(str)+"\n\n"
 # end def to_chiral_basis
 
-
 def from_chiral_basis(v_out,v_in,c): # note: factor of 1/2 is included in clover term normalization
     str = ""
     str += "spinorFloat "+a_re(0,0,c)+" =  "+spinor(v_in,1,c,0)+" + "+spinor(v_in,3,c,0)+";\n"
@@ -1064,9 +1057,6 @@ case EXTERIOR_KERNEL_Y:
     if sharedFloats > 0: str += "#undef SHARED_STRIDE\n\n"
 
     if dslash:
-        str += "#undef A_re\n"
-        str += "#undef A_im\n\n"
-
         for m in range(0,3):
             for n in range(0,3):
                 i = 3*m+n

@@ -423,7 +423,7 @@
   out[sid+1*(stride)] = make_short4((short)a2_re, (short)a2_im, (short)b0_re, (short)b0_im); \
   out[sid+2*(stride)] = make_short4((short)b1_re, (short)b1_im, (short)b2_re, (short)b2_im);
 
-//!NEW
+//!ndeg tm:
 /******************used for non-degenerate twisted mass**********************/
 #define WRITE_FLAVOR_SPINOR_DOUBLE2()					   \
   out[0*(sp_stride)+sid] = make_double2(o1_00_re, o1_00_im);	   \
@@ -542,6 +542,7 @@
   out[sid+fl_stride+3*(sp_stride)] = make_short4((short)o2_20_re, (short)o2_20_im, (short)o2_21_re, (short)o2_21_im); \
   out[sid+fl_stride+4*(sp_stride)] = make_short4((short)o2_22_re, (short)o2_22_im, (short)o2_30_re, (short)o2_30_im); \
   out[sid+fl_stride+5*(sp_stride)] = make_short4((short)o2_31_re, (short)o2_31_im, (short)o2_32_re, (short)o2_32_im);  
+
 
 /************* the following is used by staggered *****************/
 

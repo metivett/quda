@@ -575,7 +575,8 @@ static inline __device__ void coordsFromDWFaceIndex(int &cb_idx, Int &X, Int &Y,
   //printf("Global sid %d (%d, %d, %d, %d)\n", cb_int, x, y, z, t);
 }
 
-//!NEW NDEGTM:
+
+//!ndeg tm:
 template <int dim, int nLayers>
 static inline __device__ int indexFromNdegTMFaceIndex(int face_idx, const int &face_volume,
 						const int &face_num, const int &parity)
@@ -1009,7 +1010,6 @@ void packFace(void *ghost_buf, cudaColorSpinorField &in, const int dim, const in
   }
 }
 
-//BEGIN NEW
 #ifdef GPU_DOMAIN_WALL_DIRAC
 template <int dim, int dagger, typename FloatN>
 __global__ void packFaceDWKernel(FloatN *out, float *outNorm, const FloatN *in, const float *inNorm, const int parity)
@@ -1096,10 +1096,8 @@ void packFaceDW(void *ghost_buf, cudaColorSpinorField &in, const int dim, const 
   errorQuda("DW face parking routines are not built. Check that both GPU_WILSON_DIRAC and GPU_DOMAIN_WALL_DIRAC compiler flags are set.");
 #endif //GPU_WILSON_DIRAC
 }
-//END NEW
 
-//!NDEGTM NEW:
-
+//!ndeg tm:
 template <int dim, int dagger, typename FloatN>
 __global__ void packFaceNdegTMKernel(FloatN *out, float *outNorm, const FloatN *in, const float *inNorm, const int parity)
 {
@@ -1135,7 +1133,7 @@ void packFaceNdegTM(FloatN *faces, float *facesNorm, const FloatN *in, const flo
 		    const int dim, const int dagger, const int parity, 
 		    const dim3 &gridDim, const dim3 &blockDim, const cudaStream_t &stream)
 {
-#ifdef GPU_WILSON_DIRAC
+#ifdef GPU_NDEG_TWISTED_MASS_DIRAC
   if (dagger) {
     switch (dim) {
     case 0: packFaceNdegTMKernel<0,1><<<gridDim, blockDim, 0, stream>>>(faces, facesNorm, in, inNorm, parity); break;
@@ -1152,7 +1150,7 @@ void packFaceNdegTM(FloatN *faces, float *facesNorm, const FloatN *in, const flo
     }
   }
 #else
-  errorQuda("Wilson face packing kernel is not built");
+  errorQuda("Non-degenerate twisted mass face packing kernel is not built");
 #endif  
 }
 

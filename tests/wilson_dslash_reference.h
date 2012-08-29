@@ -27,7 +27,7 @@ extern "C" {
   void tm_matpc(void *out, void **gauge, void *in, double kappa, double mu,
 		QudaTwistFlavorType flavor, QudaMatPCType matpc_type,  
 		int daggerBit, QudaPrecision precision, QudaGaugeParam &param);
-//!NDEGTM NEW:
+//!ndeg tm:
   void tm_ndeg_dslash(void *res1, void *res2, void **gaugeFull, void *spinorField1, void *spinorField2, 
 		      double kappa, double mu,  double epsilon, int oddBit, int daggerBit, QudaMatPCType matpc_type, 
 		      QudaPrecision precision, QudaGaugeParam &gauge_param) ;

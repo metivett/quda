@@ -11,7 +11,7 @@
 #include <qmp.h>
 #endif
 
-using namespace std;
+using namespace quda;
 
 cudaStream_t *stream;
 
@@ -28,8 +28,9 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
 		       const int nFace, const QudaPrecision precision, const int Ls) :
   Ninternal(Ninternal), precision(precision), nDim(nDim), nDimComms(nDim), nFace(nFace)
 {
+
   if (nDim > QUDA_MAX_DIM) errorQuda("nDim = %d is greater than the maximum of %d\n", nDim, QUDA_MAX_DIM);
-//BEGIN NEW
+
   int Y[nDim];
   Y[0] = X[0];
   Y[1] = X[1];
@@ -40,7 +41,6 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
     nDimComms = 4;
   }
   setupDims(Y);
-//END NEW  
 
   //setupDims(X);
 
@@ -54,7 +54,6 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   unsigned int flag = cudaHostAllocDefault;
 
   // Buffers hold half spinors
-  
   for (int i=0; i<nDimComms; i++) {
     nbytes[i] = nFace*faceVolumeCB[i]*Ninternal*precision;
 

@@ -11,7 +11,7 @@
 
 #include <fat_force_quda.h>
 
-using namespace std;
+using namespace quda;
 
 cudaStream_t *stream;
 
@@ -21,8 +21,7 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
 		       const int nFace, const QudaPrecision precision, const int Ls) : 
   Ninternal(Ninternal), precision(precision), nDim(nDim), nFace(nFace)
 {
-//temporal hack for DW operator  
-//BEGIN NEW
+//temporal hack for DW and TM operator  
   int Y[nDim];
   Y[0] = X[0];
   Y[1] = X[1];
@@ -30,7 +29,6 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   Y[3] = X[3];
   if(nDim == 5) Y[nDim-1] = Ls;
   setupDims(Y);
-//END NEW
   
   //setupDims(X);
 
@@ -384,7 +382,7 @@ static void* back_nbr_staple_sendbuf[4];
 static int dims[4];
 static int X1,X2,X3,X4;
 static int V;
-static int Vh;
+static int volumeCB;
 static int Vs[4], Vsh[4];
 static int Vs_x, Vs_y, Vs_z, Vs_t;
 static int Vsh_x, Vsh_y, Vsh_z, Vsh_t;
@@ -404,7 +402,7 @@ setup_dims(int* X)
     V *= X[d];
     dims[d] = X[d];
   }
-  Vh = V/2;
+  volumeCB = V/2;
   
   X1=X[0];
   X2=X[1];
@@ -567,7 +565,7 @@ exchange_sitelink(int*X, Float** sitelink, Float** ghost_sitelink, Float** ghost
   int len = Vsh_t*gaugeSiteSize*sizeof(Float);
   for(i=0;i < 4;i++){
     Float* even_sitelink_back_src = sitelink[i];
-    Float* odd_sitelink_back_src = sitelink[i] + Vh*gaugeSiteSize;
+    Float* odd_sitelink_back_src = sitelink[i] + volumeCB*gaugeSiteSize;
     Float* sitelink_back_dst = sitelink_back_sendbuf[3] + 2*i*Vsh_t*gaugeSiteSize;
 
     if(dims[3] % 2 == 0){    
@@ -581,8 +579,8 @@ exchange_sitelink(int*X, Float** sitelink, Float** ghost_sitelink, Float** ghost
   }
 
   for(i=0;i < 4;i++){
-    Float* even_sitelink_fwd_src = sitelink[i] + (Vh - Vsh_t)*gaugeSiteSize;
-    Float* odd_sitelink_fwd_src = sitelink[i] + Vh*gaugeSiteSize + (Vh - Vsh_t)*gaugeSiteSize;
+    Float* even_sitelink_fwd_src = sitelink[i] + (volumeCB - Vsh_t)*gaugeSiteSize;
+    Float* odd_sitelink_fwd_src = sitelink[i] + volumeCB*gaugeSiteSize + (volumeCB - Vsh_t)*gaugeSiteSize;
     Float* sitelink_fwd_dst = sitelink_fwd_sendbuf[3] + 2*i*Vsh_t*gaugeSiteSize;
     if(dims[3] % 2 == 0){    
       memcpy(sitelink_fwd_dst, even_sitelink_fwd_src, len);
@@ -1058,7 +1056,7 @@ do_exchange_cpu_staple(Float* staple, Float** ghost_staple, Float** staple_fwd_s
 #if 0  
   int len = Vsh_t*gaugeSiteSize*sizeof(Float);
   Float* even_staple_back_src = staple;
-  Float* odd_staple_back_src = staple + Vh*gaugeSiteSize;
+  Float* odd_staple_back_src = staple + volumeCB*gaugeSiteSize;
   Float* staple_back_dst = staple_back_sendbuf[3];
   
   if(dims[3] % 2 == 0){    
@@ -1071,8 +1069,8 @@ do_exchange_cpu_staple(Float* staple, Float** ghost_staple, Float** staple_fwd_s
   }
   
   
-  Float* even_staple_fwd_src = staple + (Vh - Vsh_t)*gaugeSiteSize;
-  Float* odd_staple_fwd_src = staple + Vh*gaugeSiteSize + (Vh - Vsh_t)*gaugeSiteSize;
+  Float* even_staple_fwd_src = staple + (volumeCB - Vsh_t)*gaugeSiteSize;
+  Float* odd_staple_fwd_src = staple + volumeCB*gaugeSiteSize + (volumeCB - Vsh_t)*gaugeSiteSize;
   Float* staple_fwd_dst = staple_fwd_sendbuf[3];
   if(dims[3] % 2 == 0){    
     memcpy(staple_fwd_dst, even_staple_fwd_src, len);
@@ -1203,7 +1201,7 @@ exchange_gpu_staple_comms(int* X, void* _cudaStaple, int dir, int whichway, cuda
 
   int i = dir;
   int len = Vs[i]*gaugeSiteSize*prec;
-  int normlen = Vs[i]*sizeof(float);
+  //int normlen = Vs[i]*sizeof(float);
   
   if(recv_whichway == QUDA_BACKWARDS){   
 #ifdef GPU_DIRECT
@@ -1249,9 +1247,11 @@ exchange_gpu_staple_wait(int* X, void* _cudaStaple, int dir, int whichway, cudaS
   
 
   int i = dir;
+#ifndef GPU_DIRECT
   int len = Vs[i]*gaugeSiteSize*prec;
   int normlen = Vs[i]*sizeof(float);
-  
+#endif  
+
   if(recv_whichway == QUDA_BACKWARDS){   
     comm_wait(&llfat_recv_request1[i]);
     comm_wait(&llfat_send_request1[i]);

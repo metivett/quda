@@ -327,7 +327,7 @@ doubleN reduceLaunch(InputX X, InputY Y, InputZ Z, InputW W, InputV V, Reducer r
   } else if (tp.block.x == 1024) {
     reduceKernel<1024,ReduceType,ReduceSimpleType,FloatN,M,writeX,writeY,writeZ>
       <<< tp.grid, tp.block, tp.shared_bytes, stream >>>(X, Y, Z, W, V, r, partial, complete, XX, YY, ZZ, length);
-      }  else {
+  } else {
     errorQuda("Reduction not implemented for %d threads", tp.block.x);
   }
 
@@ -555,10 +555,10 @@ doubleN reduceCuda(const int kernel, const double2 &a, const double2 &b, cudaCol
 	Spinor<float2,float2,short2,3>, Spinor<float2,float2,short2,3>, Spinor<float2,float2,short2,3> >
 	(value,xTex,yTex,zTex,wTex,vTex,r,xOut,yOut,zOut,y.Volume());
     } else { errorQuda("ERROR: nSpin=%d is not supported\n", x.Nspin()); }
-    quda::blas_bytes += Reducer<ReduceType,double2,double2>::streams()*x.Volume()*sizeof(float);
+    blas_bytes += Reducer<ReduceType,double2,double2>::streams()*x.Volume()*sizeof(float);
   }
-  quda::blas_bytes += Reducer<ReduceType,double2,double2>::streams()*x.RealLength()*x.Precision();
-  quda::blas_flops += Reducer<ReduceType,double2,double2>::flops()*x.RealLength();
+  blas_bytes += Reducer<ReduceType,double2,double2>::streams()*x.RealLength()*x.Precision();
+  blas_flops += Reducer<ReduceType,double2,double2>::flops()*x.RealLength();
 
   reduce->apply(*blasStream);
   delete reduce;
