@@ -30,7 +30,6 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
 {
 
   if (nDim > QUDA_MAX_DIM) errorQuda("nDim = %d is greater than the maximum of %d\n", nDim, QUDA_MAX_DIM);
-
   int Y[nDim];
   Y[0] = X[0];
   Y[1] = X[1];
@@ -42,8 +41,6 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   }
   setupDims(Y);
 
-  //setupDims(X);
-
   // set these both = 0 separate streams for forwards and backwards comms
   // sendBackStrmIdx = 0, and sendFwdStrmIdx = 1 for overlap
   sendBackStrmIdx = 0;
@@ -53,31 +50,53 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   
   unsigned int flag = cudaHostAllocDefault;
 
+  int pad[4] = {0,0,0,0};
+#if (CUDA_VERSION <= 4000)
+  static const int page_size = getpagesize();
+#endif
+  
   // Buffers hold half spinors
   for (int i=0; i<nDimComms; i++) {
     nbytes[i] = nFace*faceVolumeCB[i]*Ninternal*precision;
-
     // add extra space for the norms for half precision
     if (precision == QUDA_HALF_PRECISION) nbytes[i] += nFace*faceVolumeCB[i]*sizeof(float);
-    //printf("bytes = %d, nFace = %d, faceVolume = %d, Ndof = %d, prec =  %d\n", 
-    //	   nbytes[i], nFace, faceVolumeCB[i], Ninternal, precision);
 
-    cudaHostAlloc(&(my_fwd_face[i]), nbytes[i], flag);
-    if( !my_fwd_face[i] ) errorQuda("Unable to allocate my_fwd_face with size %lu", nbytes[i]);
-  
-    //printf("%d\n", nbytes[i]);
+#if (CUDA_VERSION > 4000)
+    my_fwd_face[i] = malloc(nbytes[i]);
+#else
+    pad[i] = page_size - nbytes[i]%page_size;
+    posix_memalign(&my_fwd_face[i], page_size, nbytes[i]+pad[i]);
+#endif
+    if( !my_fwd_face[i] ) errorQuda("Unable to allocate my_fwd_face with size %lu", nbytes[i]+pad[i]);
+    cudaHostRegister(my_fwd_face[i], nbytes[i]+pad[i], flag);
 
-    cudaHostAlloc(&(my_back_face[i]), nbytes[i], flag);
-    if( !my_back_face[i] ) errorQuda("Unable to allocate my_back_face with size %lu", nbytes[i]);
+#if (CUDA_VERSION > 4000) 
+    my_back_face[i] = malloc(nbytes[i]);
+#else
+    posix_memalign(&my_back_face[i], page_size, nbytes[i]+pad[i]);
+#endif
+    if( !my_back_face[i] ) errorQuda("Unable to allocate my_back_face with size %lu", nbytes[i]+pad[i]);
+    cudaHostRegister(my_back_face[i], nbytes[i]+pad[i], flag);
   }
 
   for (int i=0; i<nDimComms; i++) {
 #ifdef QMP_COMMS
-    cudaHostAlloc(&(from_fwd_face[i]), nbytes[i], flag);
-    if( !from_fwd_face[i] ) errorQuda("Unable to allocate from_fwd_face with size %lu", nbytes[i]);
-    
-    cudaHostAlloc(&(from_back_face[i]), nbytes[i], flag);
-    if( !from_back_face[i] ) errorQuda("Unable to allocate from_back_face with size %lu", nbytes[i]);
+
+#if (CUDA_VERSION > 4000)
+    from_fwd_face[i] = malloc(nbytes[i]);
+#else
+    posix_memalign(&from_fwd_face[i], page_size, nbytes[i]+pad[i]);
+#endif
+    if( !from_fwd_face[i] ) errorQuda("Unable to allocate from_fwd_face with size %lu", nbytes[i]+pad[i]);
+    cudaHostRegister(from_fwd_face[i], nbytes[i]+pad[i], flag);
+
+#if (CUDA_VERSION > 4000)    
+    from_back_face[i] = malloc(nbytes[i]);
+#else
+    posix_memalign(&from_back_face[i], page_size, nbytes[i]+pad[i]);
+#endif
+    if( !from_back_face[i] ) errorQuda("Unable to allocate from_back_face with size %lu", nbytes[i]+pad[i]);
+    cudaHostRegister(from_back_face[i], nbytes[i]+pad[i], flag);
 
 // if no GPUDirect so need separate IB and GPU host buffers
 #ifndef GPU_DIRECT
@@ -134,6 +153,7 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   }
 #endif
 
+  checkCudaError();
 }
 
 FaceBuffer::FaceBuffer(const FaceBuffer &face) {
@@ -183,11 +203,19 @@ FaceBuffer::~FaceBuffer()
     QMP_free_msgmem(mm_send_back[i]);
     QMP_free_msgmem(mm_from_fwd[i]);
     QMP_free_msgmem(mm_from_back[i]);
-    cudaFreeHost(from_fwd_face[i]); // these are aliasing pointers for non-qmp case
-    cudaFreeHost(from_back_face[i]);// these are aliasing pointers for non-qmp case
-#endif
-    cudaFreeHost(my_fwd_face[i]);
-    cudaFreeHost(my_back_face[i]);
+
+    cudaHostUnregister(from_fwd_face[i]);
+    free(from_fwd_face[i]);
+
+    cudaHostUnregister(from_back_face[i]);
+    free(from_back_face[i]);
+#endif // QMP_COMMS
+
+    cudaHostUnregister(my_fwd_face[i]);
+    free(my_fwd_face[i]);
+
+    cudaHostUnregister(my_back_face[i]);
+    free(my_back_face[i]);
   }
 
   for (int i=0; i<nDimComms; i++) {
@@ -196,6 +224,8 @@ FaceBuffer::~FaceBuffer()
     from_fwd_face[i]=NULL;
     from_back_face[i]=NULL;
   }
+
+  checkCudaError();
 }
 
 void FaceBuffer::pack(cudaColorSpinorField &in, int parity, int dagger, int dim, cudaStream_t *stream_p)

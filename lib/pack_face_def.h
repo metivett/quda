@@ -575,7 +575,6 @@ static inline __device__ void coordsFromDWFaceIndex(int &cb_idx, Int &X, Int &Y,
   //printf("Global sid %d (%d, %d, %d, %d)\n", cb_int, x, y, z, t);
 }
 
-
 //!ndeg tm:
 template <int dim, int nLayers>
 static inline __device__ int indexFromNdegTMFaceIndex(int face_idx, const int &face_volume,
@@ -672,7 +671,6 @@ static inline __device__ int indexFromNdegTMFaceIndex(int face_idx, const int &f
 
   return idx >> 1;
 }
-
 
 // routines for packing the ghost zones (multi-GPU only)
 
@@ -1181,7 +1179,6 @@ void packFaceNdegTM(void *ghost_buf, cudaColorSpinorField &in, const int dim, co
     break;
   }  
 }
-
 
 #endif // MULTI_GPU
 

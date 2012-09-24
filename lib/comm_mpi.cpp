@@ -567,7 +567,6 @@ comm_allreduce(double* data)
   return;
 } 
 
-
 void 
 comm_allreduce_int(int* data)
 {
@@ -580,9 +579,6 @@ comm_allreduce_int(int* data)
   *data = recvbuf;
   return;
 }
-
-
-
 
 //reduce n double value
 void

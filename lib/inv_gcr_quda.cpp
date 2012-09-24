@@ -136,40 +136,46 @@ namespace quda {
     delete []delta;
   }
 
-  GCR::GCR(DiracMatrix &mat, DiracMatrix &matSloppy, DiracMatrix &matPrecon, QudaInvertParam &invParam) :
-    Solver(invParam), mat(mat), matSloppy(matSloppy), matPrecon(matPrecon), K(0)
+  GCR::GCR(DiracMatrix &mat, DiracMatrix &matSloppy, DiracMatrix &matPrecon, QudaInvertParam &invParam,
+	   TimeProfile &profile) :
+    Solver(invParam, profile), mat(mat), matSloppy(matSloppy), matPrecon(matPrecon), K(0)
   {
 
     Kparam = newQudaInvertParam();
     fillInnerInvertParam(Kparam, invParam);
 
     if (invParam.inv_type_precondition == QUDA_CG_INVERTER) // inner CG preconditioner
-      K = new CG(matPrecon, matPrecon, Kparam);
+      K = new CG(matPrecon, matPrecon, Kparam, profile);
     else if (invParam.inv_type_precondition == QUDA_BICGSTAB_INVERTER) // inner BiCGstab preconditioner
-      K = new BiCGstab(matPrecon, matPrecon, matPrecon, Kparam);
+      K = new BiCGstab(matPrecon, matPrecon, matPrecon, Kparam, profile);
     else if (invParam.inv_type_precondition == QUDA_MR_INVERTER) // inner MR preconditioner
-      K = new MR(matPrecon, Kparam);
+      K = new MR(matPrecon, Kparam, profile);
     else if (invParam.inv_type_precondition != QUDA_INVALID_INVERTER) // unknown preconditioner
       errorQuda("Unknown inner solver %d", invParam.inv_type_precondition);
 
   }
 
   GCR::~GCR() {
+    profile[QUDA_PROFILE_FREE].Start();
+
     if (K) delete K;
+
+    profile[QUDA_PROFILE_FREE].Stop();
   }
 
   void GCR::operator()(cudaColorSpinorField &x, cudaColorSpinorField &b)
   {
+    profile[QUDA_PROFILE_INIT].Start();
+
     int Nkrylov = invParam.gcrNkrylov; // size of Krylov space
 
     ColorSpinorParam param(x);
     param.create = QUDA_ZERO_FIELD_CREATE;
     cudaColorSpinorField r(x, param); 
-
     cudaColorSpinorField y(x, param); // high precision accumulator
 
     // create sloppy fields used for orthogonalization
-    param.precision = invParam.cuda_prec_sloppy;
+    param.setPrecision(invParam.cuda_prec_sloppy);
     cudaColorSpinorField **p = new cudaColorSpinorField*[Nkrylov];
     cudaColorSpinorField **Ap = new cudaColorSpinorField*[Nkrylov];
     for (int i=0; i<Nkrylov; i++) {
@@ -181,7 +187,7 @@ namespace quda {
 
     cudaColorSpinorField *x_sloppy, *r_sloppy;
     if (invParam.cuda_prec_sloppy != invParam.cuda_prec) {
-      param.precision = invParam.cuda_prec_sloppy;
+      param.setPrecision(invParam.cuda_prec_sloppy);
       x_sloppy = new cudaColorSpinorField(x, param);
       r_sloppy = new cudaColorSpinorField(x, param);
     } else {
@@ -225,9 +231,10 @@ namespace quda {
     cudaColorSpinorField rM(rSloppy);
     cudaColorSpinorField xM(rSloppy);
 
-    quda::blas_flops = 0;
+    profile[QUDA_PROFILE_INIT].Stop();
+    profile[QUDA_PROFILE_PREAMBLE].Start();
 
-    stopwatchStart();
+    quda::blas_flops = 0;
 
     // calculate initial residual
     mat(r, x);
@@ -238,10 +245,14 @@ namespace quda {
     int restart = 0;
     double r2_old = r2;
 
-    if (invParam.verbosity >= QUDA_VERBOSE) 
-      printfQuda("GCR: %d total iterations, %d Krylov iterations, r2 = %e\n", total_iter+k, k, r2);
-
     double orthT = 0, matT = 0, preT = 0, resT = 0;
+
+    if (invParam.verbosity >= QUDA_VERBOSE) 
+      printfQuda("GCR: %d total iterations, %d Krylov iterations, <r,r> = %e, |r|/|b| = %e\n", 
+		 total_iter+k, k, r2, sqrt(r2/b2));
+
+    profile[QUDA_PROFILE_PREAMBLE].Stop();
+    profile[QUDA_PROFILE_COMPUTE].Start();
 
     while (r2 > stop && total_iter < invParam.maxiter) {
     
@@ -305,7 +316,9 @@ namespace quda {
       total_iter++;
 
       if (invParam.verbosity >= QUDA_VERBOSE) 
-	printfQuda("GCR: %d total iterations, %d Krylov iterations, r2 = %e\n", total_iter, k, r2);
+	printfQuda("GCR: %d total iterations, %d Krylov iterations, <r,r> = %e, |r|/|b| = %e\n", 
+		   total_iter, k, r2, sqrt(r2/b2));
+
 
       gettimeofday(&rst0, NULL);
       // update solution and residual since max Nkrylov reached, converged or reliable update required
@@ -345,26 +358,40 @@ namespace quda {
 
     if (total_iter > 0) copyCuda(x, y);
 
+    profile[QUDA_PROFILE_COMPUTE].Stop();
+    profile[QUDA_PROFILE_EPILOGUE].Start();
+
+    invParam.secs += profile[QUDA_PROFILE_COMPUTE].Last();
+  
+    double gflops = (quda::blas_flops + mat.flops() + matSloppy.flops() + matPrecon.flops())*1e-9;
+    reduceDouble(gflops);
+
     if (k>=invParam.maxiter && invParam.verbosity >= QUDA_SUMMARIZE) 
       warningQuda("Exceeded maximum iterations %d", invParam.maxiter);
 
     if (invParam.verbosity >= QUDA_VERBOSE) printfQuda("GCR: number of restarts = %d\n", restart);
   
-    invParam.secs += stopwatchReadSeconds();
-  
-    double gflops = (quda::blas_flops + mat.flops() + matSloppy.flops() + matPrecon.flops())*1e-9;
-    reduceDouble(gflops);
-
-    printfQuda("%f gflops %e Preconditoner = %e, Mat-Vec = %e, orthogonolization %e restart %e\n", 
-	       gflops / stopwatchReadSeconds(), invParam.secs, preT, matT, orthT, resT);
+    // Calculate the true residual
+    mat(r, x);
+    double true_res = xmyNormCuda(b, r);
+    invParam.true_res = sqrt(true_res / b2);
+    
+    if (invParam.verbosity >= QUDA_SUMMARIZE)
+      printfQuda("gflops = %f time = %e: Preconditoner = %e, Mat-Vec = %e, orthogonolization %e restart %e\n", 
+		 gflops / invParam.secs, invParam.secs, preT, matT, orthT, resT);
     invParam.gflops += gflops;
     invParam.iter += total_iter;
   
+    // reset the flops counters
+    quda::blas_flops = 0;
+    mat.flops();
+    matSloppy.flops();
+    matPrecon.flops();
+
+    profile[QUDA_PROFILE_EPILOGUE].Stop();
+    profile[QUDA_PROFILE_FREE].Start();
+
     if (invParam.verbosity >= QUDA_SUMMARIZE) {
-      // Calculate the true residual
-      mat(r, x);
-      double true_res = xmyNormCuda(b, r);
-    
       printfQuda("GCR: Converged after %d iterations, relative residua: iterated = %e, true = %e\n", 
 		 total_iter, sqrt(r2/b2), sqrt(true_res / b2));    
     }
@@ -390,6 +417,8 @@ namespace quda {
     for (int i=0; i<Nkrylov; i++) delete []beta[i];
     delete []beta;
     delete gamma;
+
+    profile[QUDA_PROFILE_FREE].Stop();
 
     return;
   }

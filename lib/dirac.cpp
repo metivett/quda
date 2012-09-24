@@ -157,12 +157,12 @@ namespace quda {
     } else if (param.type == QUDA_TWISTED_MASS_DIRAC) {
 //!ndeg tm:    
       if (param.verbose >= QUDA_VERBOSE) printfQuda("Creating a DiracTwistedMass operator (for %d flavor(s))\n", param.Ls);
-        //a bit ugly hack 
+        //temporal hack:
         if (param.Ls == 1) return new DiracTwistedMass(param, 4);
         else return new DiracTwistedMass(param, 5);
       } else if (param.type == QUDA_TWISTED_MASSPC_DIRAC) {
         if (param.verbose >= QUDA_VERBOSE) printfQuda("Creating a DiracTwistedMassPC operator (for %d flavor(s))\n", param.Ls);
-        //a bit ugly hack    
+        //temporal hack    
         if (param.Ls == 1) return new DiracTwistedMassPC(param, 4);
         else return new DiracTwistedMassPC(param, 5);
     } else {

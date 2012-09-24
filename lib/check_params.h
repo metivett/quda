@@ -21,8 +21,9 @@
 #elif defined CHECK_PARAM
 #define P(x, val) if (param->x == val) errorQuda("Parameter " #x " undefined")
 #elif defined PRINT_PARAM
-#define P(x, val) \
-  printfQuda((val == INVALID_DOUBLE) ? #x " = %g\n" : #x " = %d\n", param->x)
+#define P(x, val)							\
+  { if (val == INVALID_DOUBLE) printfQuda(#x " = %g\n", (double)param->x); \
+    else printfQuda(#x " = %d\n", (int)param->x); }
 #else
 #error INIT_PARAM, CHECK_PARAM, and PRINT_PARAM all undefined in check_params.h
 #endif
@@ -98,6 +99,7 @@ void printQudaGaugeParam(QudaGaugeParam *param) {
 #if defined INIT_PARAM
 QudaInvertParam newQudaInvertParam(void) {
   QudaInvertParam ret;
+  QudaInvertParam *param=&ret;
 #elif defined CHECK_PARAM
 static void checkInvertParam(QudaInvertParam *param) {
 #else
@@ -135,6 +137,23 @@ void printQudaInvertParam(QudaInvertParam *param) {
   P(tol, INVALID_DOUBLE);
   P(maxiter, INVALID_INT);
   P(reliable_delta, INVALID_DOUBLE);
+
+#ifndef CHECK_PARAM
+  P(num_offset, 0); /**< Number of offsets in the multi-shift solver */
+#endif
+
+  if (param->num_offset > 0) {
+    for (int i=0; i<param->num_offset; i++) {
+      P(offset[i], INVALID_DOUBLE);
+      P(tol_offset[i], INVALID_DOUBLE);     
+      if (param->residual_type==QUDA_HEAVY_QUARK_RESIDUAL)
+	P(tol_hq_offset[i], INVALID_DOUBLE);
+#ifndef CHECK_PARAM
+      P(true_res_offset[i], INVALID_DOUBLE); 
+#endif
+    }
+  }
+
   P(solution_type, QUDA_INVALID_SOLUTION);
   P(solve_type, QUDA_INVALID_SOLVE);
   P(matpc_type, QUDA_MATPC_INVALID);
@@ -229,7 +248,14 @@ void printQudaInvertParam(QudaInvertParam *param) {
 
   P(verbosity, QUDA_INVALID_VERBOSITY);
 
-#ifdef PRINT_PARAM
+#ifdef INIT_PARAM
+  P(iter, 0);
+  P(spinorGiB, 0.0);
+  if (param->dslash_type == QUDA_CLOVER_WILSON_DSLASH)
+    P(cloverGiB, 0.0);
+  P(gflops, 0.0);
+  P(secs, 0.0);
+#elif defined(PRINT_PARAM)
   P(iter, INVALID_INT);
   P(spinorGiB, INVALID_DOUBLE);
   if (param->dslash_type == QUDA_CLOVER_WILSON_DSLASH)
@@ -244,6 +270,12 @@ void printQudaInvertParam(QudaInvertParam *param) {
   //p(ghostDim[1],0);
   //p(ghostDim[2],0);
   //p(ghostDim[3],0);
+#endif
+
+#ifdef INIT_PARAM
+  P(residual_type, QUDA_L2_RELATIVE_RESIDUAL);
+#else
+  P(residual_type, QUDA_INVALID_RESIDUAL);
 #endif
 
 #ifdef INIT_PARAM

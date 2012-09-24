@@ -15,6 +15,9 @@ void setVerbosity(const QudaVerbosity verbosity);
 void setOutputPrefix(const char *prefix);
 void setOutputFile(FILE *outfile);
 
+void pushVerbosity(QudaVerbosity verbosity);
+void popVerbosity();
+
 
 // Note that __func__ is part of C++11 and has long been supported by GCC.
 
@@ -91,18 +94,6 @@ void setOutputFile(FILE *outfile);
 #define checkCudaError() checkCudaErrorNoSync()
 
 #endif // HOST_DEBUG
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-  
-  void stopwatchStart();
-  double stopwatchReadSeconds();
-
-#ifdef __cplusplus
-}
-#endif
 
 
 #endif // _UTIL_QUDA_H

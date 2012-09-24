@@ -390,14 +390,14 @@ namespace quda {
     int X2 = this->x[1];
     int X3 = this->x[2];
     int X4 = this->x[3];
- 
+    //BEGIN NEW  
     int X5 = this->nDim == 5 ? this->x[4] : 1;
   
     int Vsh[4]={ X2*X3*X4*X5/2,
 		 X1*X3*X4*X5/2,
 		 X1*X2*X4*X5/2,
 		 X1*X2*X3*X5/2};
-  
+    //END NEW  
   
     int num_faces = 1;
     if(this->nSpin == 1) num_faces = 3; // staggered
@@ -459,8 +459,9 @@ namespace quda {
     int X2 = this->x[1];
     int X3 = this->x[2];
     int X4 = this->x[3];
-
+    //BEGIN NEW 
     int X5 = this->nDim == 5 ? this->x[4]: 1;
+    //END NEW    
 
 
     for(int i=0;i < this->volume;i++){ 
@@ -472,17 +473,16 @@ namespace quda {
       int x1h = sid - za*X1h;
       int zb = za/X2;
       int x2 = za - zb*X2;
-       int zc = zb / X3;
+      int zc = zb / X3;
       int x3 = zb - zc*X3;
-      int x5 = zc / X4; //this->nDim == 5 ? zc / X4 : 0;
+      int x5 = zc / X4; //this->nDim == 5 ? zz / X4 : 0;
       int x4 = zc - x5*X4;
       int x1odd = (x2 + x3 + x4 + x5 + oddBit) & 1;
-
       int x1 = 2*x1h + x1odd;
 
       int ghost_face_idx ;
     
-      //NOTE: added extra dimension for DW dslash and non-degenerate twisted mass   
+      //NOTE: added extra dimension for DW and non-deg twisted mass dslash    
 
       switch(dim){            
       case 0: //X dimension

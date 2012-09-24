@@ -1,22 +1,23 @@
 include ../make.inc
 
 QUDA = libquda.a
-QUDA_OBJS = inv_bicgstab_quda.o inv_cg_quda.o inv_multi_cg_quda.o inv_gcr_quda.o inv_mr_quda.o \
-	interface_quda.o util_quda.o hw_quda.o \
-	blas_cpu.o clover_field.o color_spinor_field.o	\
-	cpu_color_spinor_field.o cuda_color_spinor_field.o dirac.o	     \
-	lattice_field.o gauge_field.o cpu_gauge_field.o cuda_gauge_field.o \
-	dirac_clover.o dirac_wilson.o dirac_staggered.o dirac_domain_wall.o  \
-	dirac_twisted_mass.o tune.o fat_force_quda.o hisq_force_utils.o \
-	llfat_quda_itf.o clover_quda.o dslash_quda.o blas_quda.o \
-	${NUMA_AFFINITY_OBJS} ${FACE_COMMS_OBJS}
+QUDA_OBJS = timer.o solver.o inv_bicgstab_quda.o inv_cg_quda.o		\
+	inv_multi_cg_quda.o inv_gcr_quda.o inv_mr_quda.o inv_mre.o	\
+	interface_quda.o util_quda.o hw_quda.o blas_cpu.o		\
+	clover_field.o color_spinor_field.o cpu_color_spinor_field.o	\
+	cuda_color_spinor_field.o dirac.o lattice_field.o		\
+	gauge_field.o cpu_gauge_field.o cuda_gauge_field.o		\
+	dirac_clover.o dirac_wilson.o dirac_staggered.o			\
+	dirac_domain_wall.o dirac_twisted_mass.o tune.o			\
+	fat_force_quda.o llfat_quda_itf.o clover_quda.o dslash_quda.o	\
+	blas_quda.o ${NUMA_AFFINITY_OBJS} ${FACE_COMMS_OBJS}
 
 # header files, found in include/
 QUDA_HDRS = blas_quda.h clover_field.h color_spinor_field.h convert.h	\
 	dirac_quda.h dslash_quda.h enum_quda.h gauge_force_quda.h	\
 	invert_quda.h llfat_quda.h quda.h quda_internal.h util_quda.h	\
 	face_quda.h tune_quda.h comm_quda.h lattice_field.h		\
-	gauge_field.h hisq_force_utils.h double_single.h texture.h	\
+	gauge_field.h double_single.h texture.h	\
 	numa_affinity.h misc_helpers.h fermion_force_quda.h
 
 # These are only inlined into blas_quda.cu
@@ -28,7 +29,7 @@ CSF_INLN = pack_spinor.h
 # These are only inlined into dslash_quda.cu
 DSLASH_INLN = clover_def.h dslash_constants.h dslash_textures.h \
 	io_spinor.h staggered_dslash_def.h wilson_dslash_def.h \
-	dw_dslash_def.h tm_dslash_def.h tm_ndeg_dslash_def.h  pack_face_def.h hisq_force_macros.h  \
+	dw_dslash_def.h tm_dslash_def.h tm_ndeg_dslash_def.h pack_face_def.h hisq_force_macros.h  \
         llfat_quda.cu unitarize_links_quda.cu fermion_force_quda.cu          \
 	gauge_force_quda.cu hisq_paths_force_quda.cu unitarize_force_quda.cu    \
 	gauge_force_core.h hisq_paths_force_core.h  llfat_core.h svd_quda.h \
@@ -49,7 +50,7 @@ QUDA_CORE = clover_core.h staggered_dslash_core.h			\
 	tm_dslash_gt200_core.h tm_dslash_dagger_gt200_core.h		\
 	wilson_dslash_g80_core.h wilson_dslash_dagger_g80_core.h 	\
 	tm_dslash_g80_core.h tm_dslash_dagger_g80_core.h		\
-	wilson_pack_face_core.h wilson_pack_face_dagger_core.h 		\
+	wilson_pack_face_core.h wilson_pack_face_dagger_core.h		\
 	tm_ndeg_dslash_core.h tm_ndeg_dslash_dagger_core.h	
 
 INC += -I../include -Idslash_core -I.
@@ -74,8 +75,10 @@ endif
 
 all: $(QUDA)
 
+
 $(QUDA): $(QUDA_OBJS) ../make.inc
 	ar cru $@ $(QUDA_OBJS)
+
 gen:
 	$(PYTHON) generate/dslash_cuda_gen.py
 	$(PYTHON) generate/dw_dslash_cuda_gen.py
@@ -87,7 +90,7 @@ tune.o: tune.cpp $(HDRS)
 	$(CXX) $(CXXFLAGS) -DQUDA_HASH=$(HASH) $< -c -o $@
 
 blas_quda.o: blas_quda.cu $(HDRS) $(BLAS_INLN)
-	$(NVCC) $(NVCCFLAGS) $(MAXREG) $< -c -o $@ -Xptxas -abi=no
+	$(NVCC) $(NVCCFLAGS) $(MAXREG) $< -c -o $@
 
 cuda_color_spinor_field.o: cuda_color_spinor_field.cu $(HDRS) $(CSF_INLN)
 	$(NVCC) $(NVCCFLAGS) $< -c -o $@

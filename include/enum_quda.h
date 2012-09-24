@@ -29,10 +29,10 @@ extern "C" {
     QUDA_FLOAT_GAUGE_ORDER = 1,
     QUDA_FLOAT2_GAUGE_ORDER = 2, // no reconstruct and double precision
     QUDA_FLOAT4_GAUGE_ORDER = 4, // 8 and 12 reconstruct half and single
-    QUDA_QDP_GAUGE_ORDER, // expect *gauge[4], even-odd, row-column color
-    QUDA_CPS_WILSON_GAUGE_ORDER, // expect *gauge, even-odd, mu inside, column-row color
-    QUDA_MILC_GAUGE_ORDER, // expect *gauge, even-odd, mu inside, row-column order
-    QUDA_BQCD_GAUGE_ORDER, // expect *gauge, mu, even-odd, column-row order
+    QUDA_QDP_GAUGE_ORDER, // expect *gauge[mu], even-odd, spacetime, row-column color
+    QUDA_CPS_WILSON_GAUGE_ORDER, // expect *gauge, even-odd, mu, spacetime, column-row color
+    QUDA_MILC_GAUGE_ORDER, // expect *gauge, even-odd, mu, spacetime, row-column order
+    QUDA_BQCD_GAUGE_ORDER, // expect *gauge, mu, even-odd, spacetime+halos, column-row order
     QUDA_INVALID_GAUGE_ORDER = QUDA_INVALID_ENUM
   } QudaGaugeFieldOrder;
 
@@ -94,9 +94,11 @@ extern "C" {
 
   typedef enum QudaSolveType_s {
     QUDA_DIRECT_SOLVE,
-    QUDA_NORMEQ_SOLVE,
+    QUDA_NORMOP_SOLVE,
     QUDA_DIRECT_PC_SOLVE,
-    QUDA_NORMEQ_PC_SOLVE,
+    QUDA_NORMOP_PC_SOLVE,
+    QUDA_NORMEQ_SOLVE = QUDA_NORMOP_SOLVE, // deprecated
+    QUDA_NORMEQ_PC_SOLVE = QUDA_NORMOP_PC_SOLVE, // deprecated
     QUDA_INVALID_SOLVE = QUDA_INVALID_ENUM
   } QudaSolveType;
 
@@ -105,6 +107,12 @@ extern "C" {
     QUDA_MULTIPLICATIVE_SCHWARZ,
     QUDA_INVALID_SCHWARZ
   } QudaSchwarzType;
+
+  typedef enum QudaResidualType_s {
+    QUDA_L2_RELATIVE_RESIDUAL, // the default
+    QUDA_HEAVY_QUARK_RESIDUAL, // Fermilab heavy quark residual
+    QUDA_INVALID_RESIDUAL
+  } QudaResidualType;
 
   // Whether the preconditioned matrix is (1-k^2 Deo Doe) or (1-k^2 Doe Deo)
   //
@@ -152,9 +160,10 @@ extern "C" {
   } QudaDiracFieldOrder;  
 
   typedef enum QudaCloverFieldOrder_s {
+    QUDA_INTERNAL_CLOVER_ORDER,   // internal clover order use by QUDA.
     QUDA_PACKED_CLOVER_ORDER,     // even-odd, packed
     QUDA_LEX_PACKED_CLOVER_ORDER, // lexicographical order, packed
-    QUDA_BQCD_CLOVER_ORDER, // even-odd, super-diagonal packed and reordered
+    QUDA_BQCD_CLOVER_ORDER,       // even-odd, super-diagonal packed and reordered
     QUDA_INVALID_CLOVER_ORDER = QUDA_INVALID_ENUM
   } QudaCloverFieldOrder;
 
@@ -267,7 +276,7 @@ extern "C" {
     QUDA_TWIST_DEG_DOUBLET = -2,    
     QUDA_TWIST_NO  = 0,
     QUDA_TWIST_INVALID = QUDA_INVALID_ENUM
-  } QudaTwistFlavorType;   
+  } QudaTwistFlavorType; 
 
   typedef enum QudaTwistGamma5Type_s {
     QUDA_TWIST_GAMMA5_DIRECT,

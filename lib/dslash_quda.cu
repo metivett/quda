@@ -872,7 +872,7 @@ namespace quda {
 
   }
 
-  //!ndeg tm:
+//!ndeg tm:
   template <typename sFloat, typename gFloat>
   class TwistedDslashCuda : public SharedDslashCuda {
 
@@ -1593,10 +1593,6 @@ namespace quda {
 			   const double &epsilon, const int *commOverride)
   {
     inSpinor = (cudaColorSpinorField*)in; // EVIL
-//#ifdef MULTI_GPU
-  //if(in->TwistFlavor() != QUDA_TWIST_PLUS || in->TwistFlavor() != QUDA_TWIST_MINUS) errorQuda("Multi-GPU non-degenerate twisted mass is not implemented\n");
-//#endif
-
   #ifdef GPU_TWISTED_MASS_DIRAC
     int Npad = (in->Ncolor()*in->Nspin()*2)/in->FieldOrder(); // SPINOR_HOP in old code
   
@@ -1618,7 +1614,7 @@ namespace quda {
     bindGaugeTex(gauge, parity, &gauge0, &gauge1);
 
     if (in->Precision() != gauge.Precision())
-      errorQuda("Mixing gauge and spinor precision not supported");
+        errorQuda("Mixing gauge and spinor precision not supported");
 
     const void *xv = x ? x->V() : 0;
     const void *xn = x ? x->Norm() : 0;
@@ -1648,14 +1644,14 @@ namespace quda {
     }
 
 //!ndeg tm:
-  dslashCuda(*dslash, regSize, parity, dagger, bulk_threads, ghost_threads);
+    dslashCuda(*dslash, regSize, parity, dagger, bulk_threads, ghost_threads);
 
-  delete dslash;
-  unbindGaugeTex(gauge);
+    delete dslash;
+    unbindGaugeTex(gauge);
 
-  checkCudaError();
+    checkCudaError();
 #else
-  errorQuda("Twisted mass dslash has not been built");
+    errorQuda("Twisted mass dslash has not been built");
 #endif
 
 }
@@ -1935,29 +1931,29 @@ namespace quda {
   }
 
 //!ndeg tm:
-template <typename sFloat>
-class TwistGamma5Cuda : public Tunable {
+  template <typename sFloat>
+  class TwistGamma5Cuda : public Tunable {
 
-private:
-  sFloat *out;
-  float *outNorm;
-  sFloat *in;
-  float *inNorm;
-  double a;
-  double b;
-  double c;
-  size_t bytes;
-  size_t norm_bytes;
-  QudaTwistFlavorType twist_flavor;  
+  private:
+    sFloat *out;
+    float *outNorm;
+    sFloat *in;
+    float *inNorm;
+    double a;
+    double b;
+    double c;
+    size_t bytes;
+    size_t norm_bytes;
+    QudaTwistFlavorType twist_flavor;  
 
-  int sharedBytesPerThread() const { return 0; }
-  int sharedBytesPerBlock(const TuneParam &param) const { return 0; }
-  bool advanceGridDim(TuneParam &param) const { return false; } // Don't tune the grid dimensions.
+    int sharedBytesPerThread() const { return 0; }
+    int sharedBytesPerBlock(const TuneParam &param) const { return 0; }
+    bool advanceGridDim(TuneParam &param) const { return false; } // Don't tune the grid dimensions.
 
-  char *saveOut, *saveOutNorm;
+    char *saveOut, *saveOutNorm;
 
-public:
-  TwistGamma5Cuda(sFloat *out, float *outNorm, sFloat *in, float *inNorm, const QudaTwistFlavorType twistFlavor,
+  public:
+    TwistGamma5Cuda(sFloat *out, float *outNorm, sFloat *in, float *inNorm, const QudaTwistFlavorType  twistFlavor,
 		  double kappa, double mu, double epsilon, const int dagger, 
 		  QudaTwistGamma5Type twist, size_t bytes, size_t norm_bytes) :
     out(out), outNorm(outNorm), in(in), inNorm(inNorm), 
@@ -1965,26 +1961,26 @@ public:
     bindSpinorTex(bytes, norm_bytes, in, inNorm);
     twist_flavor = twistFlavor;
     
-    if((twist_flavor == QUDA_TWIST_PLUS) || (twist_flavor == QUDA_TWIST_MINUS))
-      setTwistParam(a, b, kappa, mu, dagger, twist);
-    else{//twist doublet
-      a = kappa, b = mu, c = epsilon; 
-    }
-  }
-  virtual ~TwistGamma5Cuda() {
+      if((twist_flavor == QUDA_TWIST_PLUS) || (twist_flavor == QUDA_TWIST_MINUS))
+        setTwistParam(a, b, kappa, mu, dagger, twist);
+      else{//twist doublet
+        a = kappa, b = mu, c = epsilon; 
+     }
+   }
+   virtual ~TwistGamma5Cuda() {
     unbindSpinorTex(in, inNorm);    
-  }
+   }
 
-  TuneKey tuneKey() const {
-    std::stringstream vol, aux;
-    vol << dslashConstants.x[0] << "x";
-    vol << dslashConstants.x[1] << "x";
-    vol << dslashConstants.x[2] << "x";
-    vol << dslashConstants.x[3];    
-    return TuneKey(vol.str(), typeid(*this).name(), aux.str());
-  }  
+   TuneKey tuneKey() const {
+     std::stringstream vol, aux;
+     vol << dslashConstants.x[0] << "x";
+     vol << dslashConstants.x[1] << "x";
+     vol << dslashConstants.x[2] << "x";
+     vol << dslashConstants.x[3];    
+     return TuneKey(vol.str(), typeid(*this).name(), aux.str());
+   }  
 
-  void apply(const cudaStream_t &stream) {
+   void apply(const cudaStream_t &stream) {
     if((twist_flavor == QUDA_TWIST_PLUS) || (twist_flavor == QUDA_TWIST_MINUS))
     {
         TuneParam tp = tuneLaunch(*this, dslashTuning, verbosity);
@@ -2025,47 +2021,46 @@ public:
   }
 
   long long flops() const { return 24ll * dslashConstants.VolumeCB(); }
-};
+ };
 
 //!ndeg tm: 
-void twistGamma5Cuda(cudaColorSpinorField *out, const cudaColorSpinorField *in,
-		     const int dagger, const double &kappa, const double &mu, const double &epsilon,  const QudaTwistGamma5Type twist)
-{
-  if(in->TwistFlavor() == QUDA_TWIST_PLUS || in->TwistFlavor() == QUDA_TWIST_MINUS)
-    dslashParam.threads = in->Volume();
-  else //twist doublet    
-    dslashParam.threads = in->Volume() / 2;
+  void twistGamma5Cuda(cudaColorSpinorField *out, const cudaColorSpinorField *in,
+		     const int dagger, const double &kappa, const double &mu, const double &epsilon,   const QudaTwistGamma5Type twist)
+  {
+    if(in->TwistFlavor() == QUDA_TWIST_PLUS || in->TwistFlavor() == QUDA_TWIST_MINUS)
+      dslashParam.threads = in->Volume();
+    else //twist doublet    
+      dslashParam.threads = in->Volume() / 2;
 
 #if (defined GPU_TWISTED_MASS_DIRAC) || (defined GPU_NDEG_TWISTED_MASS_DIRAC)
-  Tunable *twistGamma5 = 0;
+    Tunable *twistGamma5 = 0;
 
-  if (in->Precision() == QUDA_DOUBLE_PRECISION) {
+    if (in->Precision() == QUDA_DOUBLE_PRECISION) {
 #if (__COMPUTE_CAPABILITY__ >= 130)
-    twistGamma5 = new TwistGamma5Cuda<double2>
+      twistGamma5 = new TwistGamma5Cuda<double2>
       ((double2*)out->V(), (float*)out->Norm(), (double2*)in->V(), 
        (float*)in->Norm(), in->TwistFlavor(), kappa, mu, epsilon, dagger, twist, in->Bytes(), in->NormBytes());
 #else
-    errorQuda("Double precision not supported on this GPU");
+      errorQuda("Double precision not supported on this GPU");
 #endif
-  } else if (in->Precision() == QUDA_SINGLE_PRECISION) {
-    twistGamma5 = new TwistGamma5Cuda<float4>
+    } else if (in->Precision() == QUDA_SINGLE_PRECISION) {
+      twistGamma5 = new TwistGamma5Cuda<float4>
       ((float4*)out->V(), (float*)out->Norm(), (float4*)in->V(), 
        (float*)in->Norm(), in->TwistFlavor(), kappa, mu, epsilon, dagger, twist, in->Bytes(), in->NormBytes());
-  } else if (in->Precision() == QUDA_HALF_PRECISION) {
-    twistGamma5 = new TwistGamma5Cuda<short4>
+    } else if (in->Precision() == QUDA_HALF_PRECISION) {
+      twistGamma5 = new TwistGamma5Cuda<short4>
       ((short4*)out->V(), (float*)out->Norm(), (short4*)in->V(), 
        (float*)in->Norm(), in->TwistFlavor(), kappa, mu, epsilon, dagger, twist, in->Bytes(), in->NormBytes());
-  }
+    }
 
-  twistGamma5->apply(streams[Nstream-1]);
-  checkCudaError();
+    twistGamma5->apply(streams[Nstream-1]);
+    checkCudaError();
 
-  delete twistGamma5;
+    delete twistGamma5;
 #else
-  errorQuda("Twisted mass dslash has not been built");
+    errorQuda("Twisted mass dslash has not been built");
 #endif // GPU_TWISTED_MASS_DIRAC
-}
-
+  }
 } // namespace quda
 
 #include "misc_helpers.cu"

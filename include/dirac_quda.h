@@ -21,7 +21,7 @@ namespace quda {
     double kappa;
     double mass;
     double m5; // used by domain wall only
-    int Ls;    //!NEW: used by domain wall only and twisted mass 
+    int Ls;    //!NEW: used by domain wall only and twisted mass  
     MatPCType matpcType;
     DagType dagger;
     cudaGaugeField *gauge;
@@ -49,6 +49,20 @@ namespace quda {
 
     }
 
+    void print() {
+      printfQuda("Printing DslashParam\n");
+      printfQuda("type = %d\n", type);
+      printfQuda("kappa = %g\n", kappa);
+      printfQuda("mass = %g\n", mass);
+      printfQuda("m5 = %g\n", m5);
+      printfQuda("Ls = %d\n", Ls);
+      printfQuda("matpcType = %d\n", matpcType);
+      printfQuda("dagger = %d\n", dagger);
+      printfQuda("mu = %g\n", mu);
+//!ndeg tm:
+      printfQuda("epsilon = %g\n", epsilon);
+      for (int i=0; i<QUDA_MAX_DIM; i++) printfQuda("commDim[%d] = %d\n", i, commDim[i]);
+    }
   };
 
   void setDiracParam(DiracParam &diracParam, QudaInvertParam *inv_param, bool pc);
@@ -129,7 +143,7 @@ namespace quda {
     DiracWilson(const DiracParam &param);
     DiracWilson(const DiracWilson &dirac);
 //!ndeg tm:    
-    DiracWilson(const DiracParam &param, const int nDims);//to correctly adjust face for DW
+    DiracWilson(const DiracParam &param, const int nDims);//to correctly adjust face for DW and non-deg twisted mass   
   
     virtual ~DiracWilson();
     DiracWilson& operator=(const DiracWilson &dirac);
@@ -285,7 +299,6 @@ namespace quda {
     DiracTwistedMass(const DiracTwistedMass &dirac);
 //!ndeg tm:  
     DiracTwistedMass(const DiracParam &param, const int nDim);
-
     virtual ~DiracTwistedMass();
     DiracTwistedMass& operator=(const DiracTwistedMass &dirac);
 

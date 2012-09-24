@@ -80,7 +80,7 @@ namespace quda {
 	  nDim++;
 	  x[4] = inv_param.Ls;
 	}
-//!ndeg twisted mass
+//!ndeg twisted mass:
 	else if(inv_param.dslash_type == QUDA_TWISTED_MASS_DSLASH && (twistFlavor != QUDA_TWIST_PLUS || twistFlavor != QUDA_TWIST_MINUS)){
 	  nDim++;
 	  x[4] = 2;//for two flavors
@@ -116,13 +116,15 @@ namespace quda {
 	if (nDim > QUDA_MAX_DIM) errorQuda("Number of dimensions too great");
 	for (int d=0; d<nDim; d++) x[d] = cpuParam.x[d];
 
-	if (precision == QUDA_DOUBLE_PRECISION || nSpin == 1) {
-	  fieldOrder = QUDA_FLOAT2_FIELD_ORDER;
-	} else {
-	  fieldOrder = QUDA_FLOAT4_FIELD_ORDER;
-	}
-
+	fieldOrder = (precision == QUDA_DOUBLE_PRECISION || nSpin == 1) ? 
+	  QUDA_FLOAT2_FIELD_ORDER : QUDA_FLOAT4_FIELD_ORDER; 
       }
+
+    void setPrecision(QudaPrecision precision) {
+      this->precision = precision;
+      fieldOrder = (precision == QUDA_DOUBLE_PRECISION || nSpin == 1) ? 
+	QUDA_FLOAT2_FIELD_ORDER : QUDA_FLOAT4_FIELD_ORDER; 
+    }
 
     void print() {
       printfQuda("nColor = %d\n", nColor);
@@ -280,6 +282,7 @@ namespace quda {
     void resizeBuffer(size_t bytes) const;
     void loadSpinorField(const ColorSpinorField &src);
     void saveSpinorField (ColorSpinorField &src) const;
+    bool isNative() const;
 
   public:
     //cudaColorSpinorField();
