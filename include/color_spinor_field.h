@@ -261,8 +261,9 @@ namespace quda {
     static bool bufferInit;
     static size_t bufferBytes;
 
-    static void* fwdGhostFaceBuffer[QUDA_MAX_DIM]; //gpu memory
-    static void* backGhostFaceBuffer[QUDA_MAX_DIM]; //gpu memory
+    static void* fwdGhostFaceBuffer[QUDA_MAX_DIM]; //gpu or host-mapped memory
+    static void* backGhostFaceBuffer[QUDA_MAX_DIM]; //gpu or host-mapped memory
+    static void* hostGhostFaceBuffer[QUDA_MAX_DIM];
     static int initGhostFaceBuffer;
     static QudaPrecision facePrecision;
 
@@ -297,6 +298,9 @@ namespace quda {
 		   const int dagger, cudaStream_t *stream);
     void unpackGhost(void* ghost_spinor, const int dim, const QudaDirection dir, 
 		     const int dagger, cudaStream_t* stream);
+    //!< Returns a host pointer to the ghost zone
+    void* hostGhost(int d, const QudaDirection dir);
+
 
     void* V() {return v;}
     const void* V() const {return v;}

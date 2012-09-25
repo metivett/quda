@@ -18,7 +18,7 @@
 #define CUDAMEMCPY(dst, src, size, type, stream) cudaMemcpy(dst, src, size, type)
 #endif
 
-#define REORDER_LOCATION QUDA_CPU_FIELD_LOCATION
+#define REORDER_LOCATION QUDA_CUDA_FIELD_LOCATION
 
 namespace quda {
 
@@ -30,6 +30,11 @@ namespace quda {
   int cudaColorSpinorField::initGhostFaceBuffer = 0;
   void* cudaColorSpinorField::fwdGhostFaceBuffer[QUDA_MAX_DIM]; //gpu memory
   void* cudaColorSpinorField::backGhostFaceBuffer[QUDA_MAX_DIM]; //gpu memory
+
+#ifdef ZERO_COPY_PACK
+  void* cudaColorSpinorField::hostGhostFaceBuffer[QUDA_MAX_DIM]; //host memory
+#endif
+
   QudaPrecision cudaColorSpinorField::facePrecision; 
 
   /*cudaColorSpinorField::cudaColorSpinorField() : 
@@ -526,11 +531,23 @@ namespace quda {
       
 	if (this->initGhostFaceBuffer) { // only free-ed if precision is higher than previous allocation
 	  //device_free(this->fwdGhostFaceBuffer[i]); 
-	  device_free(this->backGhostFaceBuffer[i]); this->backGhostFaceBuffer[i] = NULL;
+#ifdef ZERO_COPY_PACK
+	  host_free(this->hostGhostFaceBuffer[i]);
+	  this->hostGhostFaceBuffer[i] = NULL;
+#else
+	  device_free(this->backGhostFaceBuffer[i]); 
+#endif
+	  this->backGhostFaceBuffer[i] = NULL;
 	  this->fwdGhostFaceBuffer[i] = NULL;
 	}
 	//this->fwdGhostFaceBuffer[i] = device_malloc(faceBytes);
+#ifdef ZERO_COPY_PACK
+	this->hostGhostFaceBuffer[i] = mapped_malloc(2*faceBytes);
+	cudaHostGetDevicePointer(&(this->backGhostFaceBuffer[i]), 
+				 this->hostGhostFaceBuffer[i], 0);
+#else
 	this->backGhostFaceBuffer[i] = device_malloc(2*faceBytes);
+#endif
 	fwdGhostFaceBuffer[i] = (void*)(((char*)backGhostFaceBuffer[i]) + faceBytes);
       }   
     
@@ -559,12 +576,32 @@ namespace quda {
 	continue;
       }
       //device_free(fwdGhostFaceBuffer[i]); 
-      device_free(backGhostFaceBuffer[i]); backGhostFaceBuffer[i] = NULL;
+#ifdef ZERO_COPY_PACK
+      host_free(hostGhostFaceBuffer[i]);
+      hostGhostFaceBuffer[i] = NULL;
+#else
+      device_free(backGhostFaceBuffer[i]); 
+#endif
+      backGhostFaceBuffer[i] = NULL;
       fwdGhostFaceBuffer[i] = NULL;
     }
     initGhostFaceBuffer = 0;  
   }
 
+  void* cudaColorSpinorField::hostGhost(const int dim, const QudaDirection dir)  { 
+#ifdef ZERO_COPY_PACK
+    int nFace = (nSpin == 1) ? 3 : 1; //3 faces for asqtad
+    int Nint = nColor * nSpin * 2; // number of internal degrees of freedom
+    if (nSpin == 4) Nint /= 2; // spin projection for Wilson
+    size_t faceBytes = nFace*ghostFace[dim]*Nint*precision;
+    if (dir == QUDA_BACKWARDS) return hostGhostFaceBuffer[dim];
+    else return (void*)((char*)hostGhostFaceBuffer[dim] + faceBytes);
+#else
+    errorQuda("QUDA is configured to use device memory for the packing result");
+    return 0;
+#endif
+  }
+  
   // pack the ghost zone into a contiguous buffer for communications
   void cudaColorSpinorField::packGhost(const int dim, const QudaParity parity, const int dagger, cudaStream_t *stream) 
   {
@@ -585,6 +622,10 @@ namespace quda {
   // send the ghost zone to the host
   void cudaColorSpinorField::sendGhost(void *ghost_spinor, const int dim, const QudaDirection dir,
 				       const int dagger, cudaStream_t *stream) {
+
+#ifdef ZERO_COPY_PACK
+    return; // data already on the host when using zero copy
+#else
 
 #ifdef MULTI_GPU
     int Nvec = (nSpin == 1 || precision == QUDA_DOUBLE_PRECISION) ? 2 : 4;
@@ -628,13 +669,6 @@ namespace quda {
       size_t spitch = stride*Nvec*precision;
       cudaMemcpy2DAsync(dst, len, src, spitch, len, Npad, cudaMemcpyDeviceToHost, *stream);
 
-      /*for(int i=0; i < Npad; i++) {
-	int len = nFace*ghostFace[3]*Nvec*precision;     
-	void *dst = (char*)ghost_spinor + i*len;
-	void *src = (char*)v + (offset + i*stride)* Nvec*precision;
-	CUDAMEMCPY(dst, src, len, cudaMemcpyDeviceToHost, *stream); 
-	}*/
-    
       if (precision == QUDA_HALF_PRECISION) {
 	int norm_offset = (dir == QUDA_BACKWARDS) ? 0 : Nt_minus1_offset*sizeof(float);
 	void *dst = (char*)ghost_spinor + nFace*Nint*ghostFace[3]*precision;
@@ -645,6 +679,8 @@ namespace quda {
 #else
     errorQuda("sendGhost not built on single-GPU build");
 #endif
+
+#endif // ZERO_COPY_PACK
 
   }
 

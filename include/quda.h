@@ -16,6 +16,8 @@
 #define QUDA_VERSION_MINOR     5
 #define QUDA_VERSION_SUBMINOR  0
 
+#define ZERO_COPY_PACK
+
 /**
  * @def   QUDA_VERSION
  * @brief This macro is deprecated.  Use QUDA_VERSION_MAJOR, etc., instead.

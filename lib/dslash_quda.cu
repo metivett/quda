@@ -1279,6 +1279,7 @@ namespace quda {
       cudaEventRecord(packEnd[2*i+1], streams[Nstream-1]);
     }
 
+#ifndef ZERO_COPY_PACK
     for(int i = 3; i >=0; i--){
       if (!dslashParam.commDim[i]) continue;
 
@@ -1297,6 +1298,8 @@ namespace quda {
     }
 #endif
 
+#endif
+
     CUDA_EVENT_RECORD(kernelStart[Nstream-1], streams[Nstream-1]);
     dslash.apply(streams[Nstream-1]);
     CUDA_EVENT_RECORD(kernelEnd[Nstream-1], streams[Nstream-1]);
@@ -1311,9 +1314,13 @@ namespace quda {
       
 	for (int dir=1; dir>=0; dir--) {
 	
-	  // Query if gather has completed
+	  // Query if gather/pack has completed
 	  if (!gatherCompleted[2*i+dir] && gatherCompleted[previousDir[2*i+dir]]) { 
+#ifdef ZERO_COPY_PACK
+	    if (cudaSuccess == cudaEventQuery(packEnd[2*i+dir])) {
+#else
 	    if (cudaSuccess == cudaEventQuery(gatherEnd[2*i+dir])) {
+#endif
 	      gatherCompleted[2*i+dir] = 1;
 	      completeSum++;
 	      gettimeofday(&commsStart[2*i+dir], NULL);
