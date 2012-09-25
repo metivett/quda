@@ -73,6 +73,7 @@ namespace quda {
   static cudaEvent_t gatherEnd[Nstream];
   static cudaEvent_t scatterStart[Nstream];
   static cudaEvent_t scatterEnd[Nstream];
+  static cudaEvent_t dslashEnd;
 
   static struct timeval dslashStart_h;
 #ifdef MULTI_GPU
@@ -85,7 +86,6 @@ namespace quda {
 #define DSLASH_TIME_PROFILE() dslashTimeProfile()
 
   static cudaEvent_t dslashStart;
-  static cudaEvent_t dslashEnd;
   static cudaEvent_t packStart[Nstream];
   static cudaEvent_t kernelStart[Nstream];
   static cudaEvent_t kernelEnd[Nstream];
@@ -201,6 +201,7 @@ namespace quda {
       cudaEventCreateWithFlags(&scatterStart[i], cudaEventDisableTiming);
       cudaEventCreateWithFlags(&scatterEnd[i], cudaEventDisableTiming);
     }
+    cudaEventCreate(&dslashEnd, cudaEventDisableTiming);
 #else
     cudaEventCreate(&dslashStart);
     cudaEventCreate(&dslashEnd);
@@ -245,9 +246,9 @@ namespace quda {
       cudaEventDestroy(scatterEnd[i]);
     }
 
+    cudaEventDestroy(dslashEnd);
 #ifdef DSLASH_PROFILING
     cudaEventDestroy(dslashStart);
-    cudaEventDestroy(dslashEnd);
 
     for (int i=0; i<Nstream; i++) {
       cudaEventDestroy(packStart[i]);
@@ -1260,6 +1261,7 @@ namespace quda {
     gettimeofday(&dslashStart_h, NULL);
 
 #ifdef MULTI_GPU
+
     for(int i = 3; i >=0; i--){
       if (!dslashParam.commDim[i]) continue;
 
@@ -1267,12 +1269,22 @@ namespace quda {
       CUDA_EVENT_RECORD(packStart[2*i+0], streams[Nstream-1]);
       CUDA_EVENT_RECORD(packStart[2*i+1], streams[Nstream-1]);
 
+#ifdef ZERO_COPY_PACK
+      cudaStreamWaitEvent(streams[2*i], dslashEnd, 0);
+#endif
+
       // Initialize pack from source spinor
       face->pack(*inSpinor, 1-parity, dagger, i, streams);
-    
+
       // Record the end of the packing
+#ifdef ZERO_COPY_PACK
+      cudaEventRecord(packEnd[2*i+0], streams[2*i]);
+      cudaEventRecord(packEnd[2*i+1], streams[2*i]);
+#else
       cudaEventRecord(packEnd[2*i+0], streams[Nstream-1]);
       cudaEventRecord(packEnd[2*i+1], streams[Nstream-1]);
+#endif
+
     }
 
 #ifndef ZERO_COPY_PACK
@@ -1363,7 +1375,12 @@ namespace quda {
       CUDA_EVENT_RECORD(kernelEnd[2*i], streams[Nstream-1]);
     }
 
+#ifdef ZERO_COPY_PACK
     CUDA_EVENT_RECORD(dslashEnd, 0);
+#else
+    cudaEventRecord(dslashEnd, 0);
+#endif
+
     DSLASH_TIME_PROFILE();
 
 #endif // MULTI_GPU

@@ -178,7 +178,11 @@ void FaceBuffer::pack(cudaColorSpinorField &in, int parity, int dagger, int dim,
 
   stream = stream_p;
 
+#ifdef ZERO_COPY_PACK
+  in.packGhost(dim, (QudaParity)parity, dagger, &stream[2*dim]);
+#else
   in.packGhost(dim, (QudaParity)parity, dagger, &stream[Nstream-1]);
+#endif
 }
 
 void FaceBuffer::gather(cudaColorSpinorField &in, int dagger, int dir)
