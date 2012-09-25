@@ -183,7 +183,7 @@ namespace quda {
       double b = 2.0 * kappa * epsilon;
   
       double d = (1.0 + a*a - b*b);
-      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;    
     
       initSpinorConstants(in);
@@ -252,7 +252,7 @@ namespace quda {
       double b = 2.0 * kappa * epsilon;
   
       double d = (1.0 + a*a - b*b);
-      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d; 
 	
       initSpinorConstants(in);
@@ -401,26 +401,38 @@ namespace quda {
 
       double a = 2.0 * kappa * mu;  
       double bb = 2.0 * kappa * epsilon;
-  
       double d = (1.0 + a*a - bb*bb);
-      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;
  
       // we desire solution to full system
       if (matpcType == QUDA_MATPC_EVEN_EVEN) {
         // src = A_ee^-1(b_e + k D_eo A_oo^-1 b_o)
         src = &(x.Odd());
-
-        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!    
-        twistedMassDslashCuda(tmp1, gauge, src, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);      
-        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!
+	
+        initSpinorConstants(*src);
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
+	
+        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT); 
+        twistedMassDslashCuda(tmp1, gauge, src, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);
+        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);
 
         sol = &(x.Even()); 
+//!End of debug zone	
         
       } else if (matpcType == QUDA_MATPC_ODD_ODD) {
         // src = A_oo^-1 (b_o + k D_oe A_ee^-1 b_e)    
         src = &(x.Even());
-      
+
+        initSpinorConstants(*src);
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
+	
         twistGamma5Cuda(src, &b.Even(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!                     
         twistedMassDslashCuda(tmp1, gauge, src, QUDA_ODD_PARITY, dagger, &b.Odd(), 0.0, 0.0, kappa, commDim);       
         twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!
@@ -429,7 +441,13 @@ namespace quda {
       } else if (matpcType == QUDA_MATPC_EVEN_EVEN_ASYMMETRIC) {
         // src = b_e + k D_eo A_oo^-1 b_o
         src = &(x.Odd());
-      
+
+        initSpinorConstants(*src);
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
+	
         twistGamma5Cuda(tmp1, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!                           
         twistedMassDslashCuda(src, gauge, tmp1, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);       
 
@@ -438,6 +456,12 @@ namespace quda {
       } else if (matpcType == QUDA_MATPC_ODD_ODD_ASYMMETRIC) {
         // src = b_o + k D_oe A_ee^-1 b_e
         src = &(x.Even());
+	
+        initSpinorConstants(*src);
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
       
         twistGamma5Cuda(tmp1, &b.Even(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!                           
         twistedMassDslashCuda(src, gauge, tmp1, QUDA_ODD_PARITY, dagger, &b.Odd(), 0.0, 0.0, kappa,
@@ -452,7 +476,7 @@ commDim);
     // b is now up for grabs if we want
 
     deleteTmp(&tmp1, reset);
-  }
+  }  
 
   void DiracTwistedMassPC::reconstruct(cudaColorSpinorField &x, const cudaColorSpinorField &b,
 				const QudaSolutionType solType) const
@@ -481,18 +505,29 @@ commDim);
     else{
       double a = 2.0 * kappa * mu;  
       double bb = 2.0 * kappa * epsilon;
-  
       double d = (1.0 + a*a - bb*bb);
-      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;
  
       if (matpcType == QUDA_MATPC_EVEN_EVEN ||  matpcType == QUDA_MATPC_EVEN_EVEN_ASYMMETRIC) {
         // x_o = A_oo^-1 (b_o + k D_oe x_e)
+        initSpinorConstants(x.Even());
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = x.Even().Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
+	
         twistedMassDslashCuda(tmp1, gauge, &x.Even(), QUDA_ODD_PARITY, dagger, &b.Odd(), 0.0, 0.0, kappa, commDim);             
         twistGamma5Cuda(&x.Odd(), tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);
  
       } else if (matpcType == QUDA_MATPC_ODD_ODD ||  matpcType == QUDA_MATPC_ODD_ODD_ASYMMETRIC) {
-        // x_e = A_ee^-1 (b_e + k D_eo x_o)    
+        // x_e = A_ee^-1 (b_e + k D_eo x_o)  
+        initSpinorConstants(x.Odd());
+        setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+        //   
+        int flv_stride = x.Odd().Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+        initTwistedMassConstants(flv_stride);	
+	
         twistedMassDslashCuda(tmp1, gauge, &x.Odd(), QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);                   
         twistGamma5Cuda(&x.Even(), tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);      
       } else {
