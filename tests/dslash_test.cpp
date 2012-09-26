@@ -84,10 +84,6 @@ void init(int argc, char **argv) {
     setKernelPackT(false);
   }
 
-#ifdef ZERO_COPY_PACK
-  setKernelPackT(true);
-#endif
-
   setSpinorSiteSize(24);
 
   gauge_param.anisotropy = 1.0;

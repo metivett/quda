@@ -530,7 +530,6 @@ namespace quda {
 	if (precision == QUDA_HALF_PRECISION) faceBytes += nFace*ghostFace[i]*sizeof(float);
       
 	if (this->initGhostFaceBuffer) { // only free-ed if precision is higher than previous allocation
-	  //device_free(this->fwdGhostFaceBuffer[i]); 
 #ifdef ZERO_COPY_PACK
 	  host_free(this->hostGhostFaceBuffer[i]);
 	  this->hostGhostFaceBuffer[i] = NULL;
@@ -540,7 +539,6 @@ namespace quda {
 	  this->backGhostFaceBuffer[i] = NULL;
 	  this->fwdGhostFaceBuffer[i] = NULL;
 	}
-	//this->fwdGhostFaceBuffer[i] = device_malloc(faceBytes);
 #ifdef ZERO_COPY_PACK
 	this->hostGhostFaceBuffer[i] = mapped_malloc(2*faceBytes);
 	cudaHostGetDevicePointer(&(this->backGhostFaceBuffer[i]), 
@@ -556,9 +554,7 @@ namespace quda {
     }
 
     for (int i=0; i<4; i++) {
-      if(!commDimPartitioned(i)){
-	continue;
-      }
+      if(!commDimPartitioned(i)) continue;
       size_t faceBytes = nFace*ghostFace[i]*Nint*precision;
       // add extra space for the norms for half precision
       if (precision == QUDA_HALF_PRECISION) faceBytes += nFace*ghostFace[i]*sizeof(float);
@@ -590,6 +586,7 @@ namespace quda {
 
   void* cudaColorSpinorField::hostGhost(const int dim, const QudaDirection dir)  { 
 #ifdef ZERO_COPY_PACK
+    allocateGhostBuffer();
     int nFace = (nSpin == 1) ? 3 : 1; //3 faces for asqtad
     int Nint = nColor * nSpin * 2; // number of internal degrees of freedom
     if (nSpin == 4) Nint /= 2; // spin projection for Wilson
@@ -623,23 +620,22 @@ namespace quda {
   void cudaColorSpinorField::sendGhost(void *ghost_spinor, const int dim, const QudaDirection dir,
 				       const int dagger, cudaStream_t *stream) {
 
-#ifdef ZERO_COPY_PACK
-    return; // data already on the host when using zero copy
-#else
-
 #ifdef MULTI_GPU
     int Nvec = (nSpin == 1 || precision == QUDA_DOUBLE_PRECISION) ? 2 : 4;
     int nFace = (nSpin == 1) ? 3 : 1; //3 faces for asqtad
     int Nint = (nColor * nSpin * 2) / (nSpin == 4 ? 2 : 1);  // (spin proj.) degrees of freedom
 
     if (dim !=3 || getKernelPackT()) { // use kernels to pack into contiguous buffers then a single cudaMemcpy
-
+#ifndef ZERO_COPY_PACK
       size_t bytes = nFace*Nint*ghostFace[dim]*precision;
       if (precision == QUDA_HALF_PRECISION) bytes += nFace*ghostFace[dim]*sizeof(float);
       void* gpu_buf = 
 	(dir == QUDA_BACKWARDS) ? this->backGhostFaceBuffer[dim] : this->fwdGhostFaceBuffer[dim];
 
       CUDAMEMCPY(ghost_spinor, gpu_buf, bytes, cudaMemcpyDeviceToHost, *stream); 
+#else
+      return; // data already on the host when using zero copy
+#endif
     } else { // do multiple cudaMemcpys 
 
       int Npad = Nint / Nvec; // number Nvec buffers we have
@@ -679,8 +675,6 @@ namespace quda {
 #else
     errorQuda("sendGhost not built on single-GPU build");
 #endif
-
-#endif // ZERO_COPY_PACK
 
   }
 

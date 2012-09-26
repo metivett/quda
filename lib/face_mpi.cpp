@@ -55,6 +55,9 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
 #ifndef ZERO_COPY_PACK
     fwd_nbr_spinor_sendbuf[dir] = pinned_malloc(nbytes[dir]);
     back_nbr_spinor_sendbuf[dir] = pinned_malloc(nbytes[dir]);
+#else
+    fwd_nbr_spinor_sendbuf[dir] = NULL;
+    back_nbr_spinor_sendbuf[dir] = NULL;
 #endif
 
     fwd_nbr_spinor[dir] = pinned_malloc(nbytes[dir]);
@@ -167,6 +170,8 @@ void FaceBuffer::pack(cudaColorSpinorField &in, int parity, int dagger, int dim,
   if(!commDimPartitioned(dim)) return;
 
   in.allocateGhostBuffer();   // allocate the ghost buffer if not yet allocated  
+  stream = stream_p;
+
 #ifdef ZERO_COPY_PACK
   fwd_nbr_spinor_sendbuf[dim] = in.hostGhost(dim, QUDA_FORWARDS);
   back_nbr_spinor_sendbuf[dim] = in.hostGhost(dim, QUDA_BACKWARDS);
@@ -174,9 +179,8 @@ void FaceBuffer::pack(cudaColorSpinorField &in, int parity, int dagger, int dim,
   pageable_fwd_nbr_spinor_sendbuf[dim] = fwd_nbr_spinor_sendbuf[dim];
   pageable_back_nbr_spinor_sendbuf[dim] = back_nbr_spinor_sendbuf[dim];
 #endif // GPU_DIRECT
+  if (dim==3) return;
 #endif // ZERO_COPY_PACK
-
-  stream = stream_p;
 
 #ifdef ZERO_COPY_PACK
   in.packGhost(dim, (QudaParity)parity, dagger, &stream[2*dim]);
@@ -189,6 +193,15 @@ void FaceBuffer::gather(cudaColorSpinorField &in, int dagger, int dir)
 {
   int dim = dir/2;
   if(!commDimPartitioned(dim)) return;
+
+#ifdef ZERO_COPY_PACK
+  fwd_nbr_spinor_sendbuf[dim] = in.hostGhost(dim, QUDA_FORWARDS);
+  back_nbr_spinor_sendbuf[dim] = in.hostGhost(dim, QUDA_BACKWARDS);
+#ifdef GPU_DIRECT
+  pageable_fwd_nbr_spinor_sendbuf[dim] = fwd_nbr_spinor_sendbuf[dim];
+  pageable_back_nbr_spinor_sendbuf[dim] = back_nbr_spinor_sendbuf[dim];
+#endif // GPU_DIRECT
+#endif // ZERO_COPY_PACK
 
   if (dir%2==0){ // backwards send
     in.sendGhost(back_nbr_spinor_sendbuf[dim], dim, QUDA_BACKWARDS, dagger, &stream[2*dim + sendBackStrmIdx]);

@@ -1271,13 +1271,24 @@ namespace quda {
 
 #ifdef ZERO_COPY_PACK
       cudaStreamWaitEvent(streams[2*i], dslashEnd, 0);
+
+      if (i==3 && !getKernelPackT()) {
+	// Initialize pack from source spinor
+	face->pack(*inSpinor, 1-parity, dagger, i, streams);
+
+	// Initialize host transfer from source spinor
+	face->gather(*inSpinor, dagger, 2*i+1);
+	cudaStreamWaitEvent(streams[2*i+1], dslashEnd, 0);
+	face->gather(*inSpinor, dagger, 2*i+0);
+      } else {
 #endif
 
-      // Initialize pack from source spinor
-      face->pack(*inSpinor, 1-parity, dagger, i, streams);
+	// Initialize pack from source spinor
+	face->pack(*inSpinor, 1-parity, dagger, i, streams);
 
       // Record the end of the packing
 #ifdef ZERO_COPY_PACK
+      }
       cudaEventRecord(packEnd[2*i+0], streams[2*i]);
       cudaEventRecord(packEnd[2*i+1], streams[2*i]);
 #else
