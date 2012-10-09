@@ -81,7 +81,7 @@ namespace quda {
 	  x[4] = inv_param.Ls;
 	}
 //!ndeg twisted mass:
-	else if(inv_param.dslash_type == QUDA_TWISTED_MASS_DSLASH && (twistFlavor != QUDA_TWIST_PLUS || twistFlavor != QUDA_TWIST_MINUS)){
+	else if(inv_param.dslash_type == QUDA_TWISTED_MASS_DSLASH && (twistFlavor == QUDA_TWIST_NONDEG_DOUBLET)){
 	  nDim++;
 	  x[4] = 2;//for two flavors
     	}

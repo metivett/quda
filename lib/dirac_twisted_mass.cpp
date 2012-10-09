@@ -84,7 +84,27 @@ namespace quda {
       DslashXpay(out.Even(), in.Odd(), QUDA_EVEN_PARITY, *tmp, -kappa);
     }
     else{
-      errorQuda("Method is not implemented %d\n", in.TwistFlavor());    
+      //errorQuda("Method is not implemented %d\n", in.TwistFlavor());
+      double a = -2.0 * kappa * mu;  
+      double b = -2.0 * kappa * epsilon;
+      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      double c = 1.0;    
+    
+      initSpinorConstants(in.Even());
+
+//!ndeg tm:  
+      setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda
+      int flv_stride = in.Volume()/4;//if (in.SiteSubset() == QUDA_FULL_SITE_SUBSET)
+      
+      initTwistedMassConstants(flv_stride);      
+
+      twistGamma5Cuda(tmp, &in.Odd(), dagger, a, b, c, QUDA_TWIST_GAMMA5_DIRECT);
+      twistedMassDslashCuda(&out.Odd(), gauge, &in.Even(), QUDA_ODD_PARITY, dagger, tmp, 0.0, 0.0, -kappa, commDim);      
+      
+      twistGamma5Cuda(tmp, &in.Even(), dagger, a, b, c, QUDA_TWIST_GAMMA5_DIRECT);
+      twistedMassDslashCuda(&out.Even(), gauge, &in.Odd(), QUDA_EVEN_PARITY, dagger, tmp, 0.0, 0.0, -kappa, commDim);      
+
+      flops += (1320+72+24)*in.Volume();
     }
     deleteTmp(&tmp, reset);
   }
@@ -183,7 +203,7 @@ namespace quda {
       double b = 2.0 * kappa * epsilon;
   
       double d = (1.0 + a*a - b*b);
-      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;    
     
       initSpinorConstants(in);
@@ -219,7 +239,6 @@ namespace quda {
   {
     checkParitySpinor(in, out);
     checkSpinorAlias(in, out);
-
     if (in.TwistFlavor() != out.TwistFlavor()) 
       errorQuda("Twist flavors %d %d don't match", in.TwistFlavor(), out.TwistFlavor());
     if (in.TwistFlavor() == QUDA_TWIST_NO || in.TwistFlavor() == QUDA_TWIST_INVALID)
@@ -252,7 +271,7 @@ namespace quda {
       double b = 2.0 * kappa * epsilon;
   
       double d = (1.0 + a*a - b*b);
-      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d; 
 	
       initSpinorConstants(in);
@@ -351,6 +370,7 @@ namespace quda {
     deleteTmp(&tmp2, reset);
   }
 
+#if 1
   void DiracTwistedMassPC::prepare(cudaColorSpinorField* &src, cudaColorSpinorField* &sol,
 				   cudaColorSpinorField &x, cudaColorSpinorField &b, 
 				   const QudaSolutionType solType) const
@@ -401,8 +421,9 @@ namespace quda {
 
       double a = 2.0 * kappa * mu;  
       double bb = 2.0 * kappa * epsilon;
+  
       double d = (1.0 + a*a - bb*bb);
-      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;
  
       // we desire solution to full system
@@ -416,9 +437,9 @@ namespace quda {
         int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
         initTwistedMassConstants(flv_stride);	
 	
-        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT); 
+        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack! 
         twistedMassDslashCuda(tmp1, gauge, src, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);
-        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);
+        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!
 
         sol = &(x.Even()); 
 //!End of debug zone	
@@ -476,7 +497,67 @@ commDim);
     // b is now up for grabs if we want
 
     deleteTmp(&tmp1, reset);
-  }  
+  }
+  
+#endif  
+
+#if 0
+  void DiracTwistedMassPC::prepare(cudaColorSpinorField* &src, cudaColorSpinorField* &sol,
+				   cudaColorSpinorField &x, cudaColorSpinorField &b, 
+				   const QudaSolutionType solType) const
+  {
+    // we desire solution to preconditioned system
+    if (solType == QUDA_MATPC_SOLUTION || solType == QUDA_MATPCDAG_MATPC_SOLUTION) {
+      src = &b;
+      sol = &x;
+      return;
+    }
+
+    bool reset = newTmp(&tmp1, b.Even());
+  
+    // we desire solution to preconditioned system
+
+    double a  = 2.0 * kappa * mu;  
+    double bb = 2.0 * kappa * epsilon;
+  
+    double d = (1.0 + a*a - bb*bb);
+    if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+    double c = 1.0 / d;
+    
+      // we desire solution to full system
+      // src = A_ee^-1(b_e + k D_eo A_oo^-1 b_o)
+        src = &(x.Odd());
+      //	
+      initSpinorConstants(*src);
+  //!ndeg tm:
+      setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
+      //   
+      int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
+      initTwistedMassConstants(flv_stride);     
+	
+//!Debug zone:	
+printf("\nStart check here\n");      
+double check = norm2(b.Odd());
+printf("\nOdd Norm : %le\n", check);
+check = norm2(b.Even());
+printf("\nEven Norm: %le\n", check);
+        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack! 
+check = norm2(*src);
+printf("\nNorm vector 1: %le\n", check);	
+        twistedMassDslashCuda(tmp1, gauge, src, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);
+//DslashXpay(*tmp1, *src, QUDA_EVEN_PARITY, b.Even(), kappa);	
+check = norm2(*tmp1);
+printf("\nNorm vector 2: %le\n", check);	
+        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!
+
+        sol = &(x.Even()); 
+//!End of debug zone	
+    // here we use final solution to store parity solution and parity source
+    // b is now up for grabs if we want
+    deleteTmp(&tmp1, reset);
+  }
+
+#endif
 
   void DiracTwistedMassPC::reconstruct(cudaColorSpinorField &x, const cudaColorSpinorField &b,
 				const QudaSolutionType solType) const
@@ -505,8 +586,9 @@ commDim);
     else{
       double a = 2.0 * kappa * mu;  
       double bb = 2.0 * kappa * epsilon;
+  
       double d = (1.0 + a*a - bb*bb);
-      //if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
+      if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
       double c = 1.0 / d;
  
       if (matpcType == QUDA_MATPC_EVEN_EVEN ||  matpcType == QUDA_MATPC_EVEN_EVEN_ASYMMETRIC) {

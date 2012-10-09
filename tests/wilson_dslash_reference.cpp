@@ -453,16 +453,16 @@ void ndegTwistGamma5(sFloat *out1, sFloat *out2, sFloat *in1, sFloat *in2, const
   
 }
 
-void ndeg_twist_gamma5(void *out1, void *out2, void *in1, void *in2, const int dagger, const double kappa, const double mu, 
-		 const double epsilon, const int V, QudaTwistGamma5Type twist, QudaPrecision precision) 
+void ndeg_twist_gamma5(void *outf1, void *outf2, void *inf1, void *inf2, const int dagger, const double kappa, const double mu, 
+		 const double epsilon, const int Vf, QudaTwistGamma5Type twist, QudaPrecision precision) 
 {
   if (precision == QUDA_DOUBLE_PRECISION) 
   {
-      ndegTwistGamma5((double*)out1, (double*)out2, (double*)in1, (double*)in2, dagger, kappa, mu, epsilon, V, twist);
+      ndegTwistGamma5((double*)outf1, (double*)outf2, (double*)inf1, (double*)inf2, dagger, kappa, mu, epsilon, Vf, twist);
   } 
   else //single precision dslash
   {
-      ndegTwistGamma5((float*)out1, (float*)out2, (float*)in1, (float*)in2, dagger, (float)kappa, (float)mu, (float)epsilon, V, twist);
+      ndegTwistGamma5((float*)outf1, (float*)outf2, (float*)inf1, (float*)inf2, dagger, (float)kappa, (float)mu, (float)epsilon, Vf, twist);
   }
 }
 
@@ -559,20 +559,23 @@ void tm_ndeg_mat(void *evenOut, void* oddOut, void **gauge, void *evenIn, void *
 {
   //V-4d volume and Vh=V/2
   void *inEven1   = evenIn;
-  void *inEven2   = (char*)evenIn + Vh*spinorSiteSize;  
+  void *inEven2   = (char*)evenIn + precision*Vh*spinorSiteSize;  
   
   void *inOdd1    = oddIn;
-  void *inOdd2    = (char*)oddIn + Vh*spinorSiteSize;  
+  void *inOdd2    = (char*)oddIn + precision*Vh*spinorSiteSize;  
   
   void *outEven1  = evenOut;
-  void *outEven2  = (char*)evenOut + Vh*spinorSiteSize;  
+  void *outEven2  = (char*)evenOut + precision*Vh*spinorSiteSize;  
   
   void *outOdd1   = oddOut;
-  void *outOdd2   = (char*)oddOut + Vh*spinorSiteSize;  
+  void *outOdd2   = (char*)oddOut + precision*Vh*spinorSiteSize;  
  
-  void *tmp1 = malloc(V*spinorSiteSize*precision);
-  void *tmp2 = malloc(V*spinorSiteSize*precision);
+  void *tmpEven1 = malloc(Vh*spinorSiteSize*precision);
+  void *tmpEven2 = malloc(Vh*spinorSiteSize*precision);
 
+  void *tmpOdd1  = malloc(Vh*spinorSiteSize*precision);
+  void *tmpOdd2  = malloc(Vh*spinorSiteSize*precision);  
+  
   // full dslash operator:
   wil_dslash(outOdd1, gauge, inEven1, 1, daggerBit, precision, gauge_param);        
   wil_dslash(outOdd2, gauge, inEven2, 1, daggerBit, precision, gauge_param);          
@@ -581,20 +584,29 @@ void tm_ndeg_mat(void *evenOut, void* oddOut, void **gauge, void *evenIn, void *
   wil_dslash(outEven2, gauge, inOdd2, 0, daggerBit, precision, gauge_param);          
 
   // apply the twist term
-  ndeg_twist_gamma5(tmp1, tmp2, evenIn, oddIn, daggerBit, kappa, mu, epsilon, V, QUDA_TWIST_GAMMA5_DIRECT, precision);
-
+  ndeg_twist_gamma5(tmpEven1, tmpEven2, inEven1, inEven2, daggerBit, kappa, mu, epsilon, Vh, QUDA_TWIST_GAMMA5_DIRECT, precision);    
+  ndeg_twist_gamma5(tmpOdd1, tmpOdd2, inOdd1, inOdd2, daggerBit, kappa, mu, epsilon, Vh, QUDA_TWIST_GAMMA5_DIRECT, precision);
   // combine
   if (precision == QUDA_DOUBLE_PRECISION){
-    xpay((double*)tmp1, -kappa, (double*)evenOut, V*spinorSiteSize);
-    xpay((double*)tmp2, -kappa, (double*)oddOut, V*spinorSiteSize);  
+    xpay((double*)tmpOdd1, -kappa, (double*)outOdd1, Vh*spinorSiteSize);
+    xpay((double*)tmpOdd2, -kappa, (double*)outOdd2, Vh*spinorSiteSize);  
+   
+    xpay((double*)tmpEven1, -kappa, (double*)outEven1, Vh*spinorSiteSize);
+    xpay((double*)tmpEven2, -kappa, (double*)outEven2, Vh*spinorSiteSize);  
   }
   else{
-    xpay((float*)tmp1, (float)(-kappa), (float*)evenOut, V*spinorSiteSize);
-    xpay((float*)tmp2, (float)(-kappa), (float*)oddOut, V*spinorSiteSize);  
+    xpay((float*)tmpOdd1, (float)(-kappa), (float*)outOdd1, Vh*spinorSiteSize);
+    xpay((float*)tmpOdd2, (float)(-kappa), (float*)outOdd2, Vh*spinorSiteSize);  
+    
+    xpay((float*)tmpEven1, (float)(-kappa), (float*)outEven1, Vh*spinorSiteSize);
+    xpay((float*)tmpEven2, (float)(-kappa), (float*)outEven2, Vh*spinorSiteSize);  
   }
 
-  free(tmp1);
-  free(tmp2);
+  free(tmpOdd1);
+  free(tmpOdd2);
+  //
+  free(tmpEven1);
+  free(tmpEven2);
 }
 
 //End of nondeg TM
