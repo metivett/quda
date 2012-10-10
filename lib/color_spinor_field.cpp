@@ -141,7 +141,7 @@ namespace quda {
     }
 
 //!ndeg tm:
-   if((twistFlavor == QUDA_TWIST_NONDEG_DOUBLET) && (twistFlavor == QUDA_TWIST_DEG_DOUBLET) && x[4] != 2) errorQuda("Must be two flavors for non-degenerate twisted mass spinor (while provided with %d number of components)\n", x[4]);//two flavors
+   if((twistFlavor == QUDA_TWIST_NONDEG_DOUBLET || twistFlavor == QUDA_TWIST_DEG_DOUBLET) && x[4] != 2) errorQuda("Must be two flavors for non-degenerate twisted mass spinor (while provided with %d number of components)\n", x[4]);//two flavors
 
     pad = Pad;
     if (siteSubset == QUDA_FULL_SITE_SUBSET) {
@@ -193,7 +193,7 @@ namespace quda {
       volume *= x[d];
     }
 //!ndeg tm:
-  if((twistFlavor == QUDA_TWIST_NONDEG_DOUBLET) && (twistFlavor == QUDA_TWIST_DEG_DOUBLET) && x[4] != 2) errorQuda("Must be two flavors for non-degenerate twisted mass spinor (provided with %d)\n", x[4]);
+  if((twistFlavor == QUDA_TWIST_NONDEG_DOUBLET || twistFlavor == QUDA_TWIST_DEG_DOUBLET) && x[4] != 2) errorQuda("Must be two flavors for non-degenerate twisted mass spinor (provided with %d)\n", x[4]);
 
   
     if (param.pad != 0) pad = param.pad;
