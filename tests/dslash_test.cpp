@@ -80,8 +80,18 @@ void init(int argc, char **argv) {
     setKernelPackT(true);
   } else {
     setDims(gauge_param.X);
-    Ls = 1;
-    setKernelPackT(false);
+    if (dslash_type == QUDA_TWISTED_MASS_DSLASH)
+    {
+       Ls = 2;
+       setKernelPackT(true);
+       //!Ls = 1;
+       //setKernelPackT(false);
+    }
+    else
+    {
+       Ls = 1;
+       setKernelPackT(false);
+    }
   }
 
   setSpinorSiteSize(24);
@@ -100,17 +110,13 @@ void init(int argc, char **argv) {
   gauge_param.gauge_fix = QUDA_GAUGE_FIXED_NO;
 
   inv_param.kappa = 0.1;
-  
+
   if (dslash_type == QUDA_TWISTED_MASS_DSLASH) {
-    inv_param.mu = 0.0;
-    inv_param.epsilon = 0.25;    
+    inv_param.mu = 0.01;
+    inv_param.epsilon = 0.01; 
+//!    inv_param.twist_flavor = QUDA_TWIST_MINUS;
     inv_param.twist_flavor = QUDA_TWIST_NONDEG_DOUBLET;
-//!    
-    setKernelPackT(true);
-    Ls = 2;
-//!    
-    //inv_param.twist_flavor = QUDA_TWIST_PLUS;    
-  }else if (dslash_type == QUDA_DOMAIN_WALL_DSLASH) {
+  } else if (dslash_type == QUDA_DOMAIN_WALL_DSLASH) {
     inv_param.mass = 0.01;
     inv_param.m5 = -1.5;
     kappa5 = 0.5/(5 + inv_param.m5);
@@ -118,8 +124,7 @@ void init(int argc, char **argv) {
 
   inv_param.Ls = Ls;
   
-  //inv_param.matpc_type = QUDA_MATPC_EVEN_EVEN_ASYMMETRIC;
-  inv_param.matpc_type = QUDA_MATPC_EVEN_EVEN;  
+  inv_param.matpc_type = QUDA_MATPC_EVEN_EVEN;
   inv_param.dagger = dagger;
 
   inv_param.cpu_prec = cpu_prec;
@@ -134,19 +139,19 @@ void init(int argc, char **argv) {
 #ifndef MULTI_GPU // free parameter for single GPU
   gauge_param.ga_pad = 0;
 #else // must be this one c/b face for multi gpu
-  int x_face_size = Ls*gauge_param.X[1]*gauge_param.X[2]*gauge_param.X[3]/2;
-  int y_face_size = Ls*gauge_param.X[0]*gauge_param.X[2]*gauge_param.X[3]/2;
-  int z_face_size = Ls*gauge_param.X[0]*gauge_param.X[1]*gauge_param.X[3]/2;
-  int t_face_size = Ls*gauge_param.X[0]*gauge_param.X[1]*gauge_param.X[2]/2;
+  int x_face_size = gauge_param.X[1]*gauge_param.X[2]*gauge_param.X[3]/2;
+  int y_face_size = gauge_param.X[0]*gauge_param.X[2]*gauge_param.X[3]/2;
+  int z_face_size = gauge_param.X[0]*gauge_param.X[1]*gauge_param.X[3]/2;
+  int t_face_size = gauge_param.X[0]*gauge_param.X[1]*gauge_param.X[2]/2;
   int pad_size =MAX(x_face_size, y_face_size);
   pad_size = MAX(pad_size, z_face_size);
   pad_size = MAX(pad_size, t_face_size);
   gauge_param.ga_pad = pad_size;    
 #endif
-  inv_param.sp_pad = 0;//16*16*16;
+  inv_param.sp_pad = 0;
   inv_param.cl_pad = 0;
 
-  //inv_param.sp_pad = 24*24*24;
+  //inv_param.sp_pad = xdim*ydim*zdim/2;
   //inv_param.cl_pad = 24*24*24;
 
   inv_param.gamma_basis = QUDA_DEGRAND_ROSSI_GAMMA_BASIS; // test code only supports DeGrand-Rossi Basis
@@ -206,12 +211,14 @@ void init(int argc, char **argv) {
     csParam.nDim = 5;
     csParam.x[4] = Ls;
   }
-//!NEW    
+
+//ndeg_tm    
   if (dslash_type == QUDA_TWISTED_MASS_DSLASH) {
     csParam.twistFlavor = inv_param.twist_flavor;
     csParam.nDim = (inv_param.twist_flavor == QUDA_TWIST_PLUS || inv_param.twist_flavor == QUDA_TWIST_MINUS) ? 4 : 5;
-    csParam.x[4] = (inv_param.twist_flavor == QUDA_TWIST_PLUS || inv_param.twist_flavor == QUDA_TWIST_MINUS) ? 1 : 2;    
+    csParam.x[4] = Ls;    
   }
+
 
   csParam.precision = inv_param.cpu_prec;
   csParam.pad = 0;
@@ -431,16 +438,14 @@ void dslashRef() {
       exit(-1);
     }
   } else if (dslash_type == QUDA_TWISTED_MASS_DSLASH) {
-    
-    //flavor offset for parity spinor (case 0, 1, 3) and parity offset for full spinor (case 2,4):
-    int tm_offset = (inv_param.twist_flavor == QUDA_TWIST_PLUS || inv_param.twist_flavor == QUDA_TWIST_MINUS) ? 0 : 12*spinorRef->Volume();    
-    
     switch (test_type) {
     case 0:
       if(inv_param.twist_flavor == QUDA_TWIST_PLUS || inv_param.twist_flavor == QUDA_TWIST_MINUS)
 	tm_dslash(spinorRef->V(), hostGauge, spinor->V(), inv_param.kappa, inv_param.mu, inv_param.twist_flavor, parity, dagger, inv_param.cpu_prec, gauge_param);
       else
       {
+        int tm_offset = 12*spinorRef->Volume();
+
 	void *ref1 = spinorRef->V();
 	void *ref2 = cpu_prec == sizeof(double) ? (void*)((double*)ref1 + tm_offset): (void*)((float*)ref1 + tm_offset);
     
@@ -456,6 +461,8 @@ void dslashRef() {
 	tm_matpc(spinorRef->V(), hostGauge, spinor->V(), inv_param.kappa, inv_param.mu, inv_param.twist_flavor, inv_param.matpc_type, dagger, inv_param.cpu_prec, gauge_param);
       else
       {
+        int tm_offset = 12*spinorRef->Volume();
+
 	void *ref1 = spinorRef->V();
 	void *ref2 = cpu_prec == sizeof(double) ? (void*)((double*)ref1 + tm_offset): (void*)((float*)ref1 + tm_offset);
     
@@ -470,6 +477,8 @@ void dslashRef() {
 	tm_mat(spinorRef->V(), hostGauge, spinor->V(), inv_param.kappa, inv_param.mu, inv_param.twist_flavor, dagger, inv_param.cpu_prec, gauge_param);
       else
       {
+        int tm_offset = 12*spinorRef->Volume();
+
 	void *evenOut = spinorRef->V();
 	void *oddOut  = cpu_prec == sizeof(double) ? (void*)((double*)evenOut + tm_offset): (void*)((float*)evenOut + tm_offset);
     
@@ -602,7 +611,7 @@ int main(int argc, char **argv)
     if (!transfer) *spinorOut = *cudaSpinorOut;
 
     // print timing information
-    printfQuda("%fms per loop\n", 1000*secs);
+    printfQuda("%fus per kernel call\n", 1e6*secs / niter);
     
     unsigned long long flops = 0;
     if (!transfer) flops = dirac->Flops();
@@ -615,7 +624,7 @@ int main(int argc, char **argv)
     }
     printfQuda("GFLOPS = %f\n", 1.0e-9*flops/secs);
     printfQuda("GB/s = %f\n\n", 
-	       Vh*(Ls*spinor_floats+gauge_floats)*inv_param.cuda_prec/((secs/niter)*1e+9));
+	       (double)Vh*(Ls*spinor_floats+gauge_floats)*inv_param.cuda_prec/((secs/niter)*1e+9));
     
     if (!transfer) {
       double norm2_cpu = norm2(*spinorRef);
@@ -629,8 +638,7 @@ int main(int argc, char **argv)
     }
     
     cpuColorSpinorField::Compare(*spinorRef, *spinorOut);
-  } 
-  checkCudaError();
+  }    
   end();
 
   endCommsQuda();

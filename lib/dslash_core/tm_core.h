@@ -1,5 +1,5 @@
-#ifndef _TWIST_QUDA_CUH
-#define _TWIST_QUDA_CUH
+#ifndef _TM_CORE_H
+#define _TM_CORE_H
 
 //action of the operator b*(1 + i*a*gamma5)
 //used also macros from io_spinor.h
@@ -40,6 +40,7 @@ __device__ double2 operator*(const double &x, const double2 &y)
 __global__ void twistGamma5Kernel(double2 *spinor, float *null, double a, double b, 
 				  const double2 *in, const float *null2, DslashParam param)
 {
+#ifdef GPU_TWISTED_MASS_DIRAC
 
    int sid = blockIdx.x*blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;
@@ -157,14 +158,13 @@ __global__ void twistGamma5Kernel(double2 *spinor, float *null, double a, double
    spinor[sid + 9  * sp_stride] = I9;   
    spinor[sid + 10 * sp_stride] = I10;   
    spinor[sid + 11 * sp_stride] = I11;
-
-   return;  
+#endif
 }
 
-//BEGIN NEW:
 
 __global__ void twistGamma5Kernel(double2 *spinor, float *null, const double a, const double b, const double c, const double2 *in, const float *null2, DslashParam param)
 {
+#ifdef GPU_NDEG_TWISTED_MASS_DIRAC
    int sid = blockIdx.x * blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;   
    
@@ -464,8 +464,9 @@ __global__ void twistGamma5Kernel(double2 *spinor, float *null, const double a, 
    spinor[flv1_idx + 5  * sp_stride] = c * accum1_0;   
    spinor[flv1_idx + 11  * sp_stride] = c * accum1_1;   
    spinor[flv2_idx + 5  * sp_stride] = c * accum2_0;   
-   spinor[flv2_idx + 11  * sp_stride] = c * accum2_1;    
-   return;  
+   spinor[flv2_idx + 11  * sp_stride] = c * accum2_1;
+    
+#endif
 }
 
 #undef SPINOR_HOP
@@ -494,6 +495,7 @@ __global__ void twistGamma5Kernel(double2 *spinor, float *null, const double a, 
 __global__ void twistGamma5Kernel(float4 *spinor, float *null, float a, float b, 
 				  const float4 *in, const float *null2, DslashParam param)
 {
+#ifdef GPU_TWISTED_MASS_DIRAC
    int sid = blockIdx.x*blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;
 
@@ -583,14 +585,14 @@ __global__ void twistGamma5Kernel(float4 *spinor, float *null, float a, float b,
    spinor[sid + 3  * sp_stride] = I3;   
    spinor[sid + 4  * sp_stride] = I4;   
    spinor[sid + 5  * sp_stride] = I5;   
-
-   return;  
+#endif 
 }
 
 
 __global__ void twistGamma5Kernel(short4* spinor, float *spinorNorm, float a, float b, 
 				  const short4 *in, const float *inNorm, DslashParam param)
 {
+#ifdef GPU_TWISTED_MASS_DIRAC
    int sid = blockIdx.x*blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;
 
@@ -724,14 +726,14 @@ __global__ void twistGamma5Kernel(short4* spinor, float *spinorNorm, float a, fl
    spinor[sid+4*(sp_stride)] = make_short4((short)I4.x, (short)I4.y, (short)I4.z, (short)I4.w); 
    spinor[sid+5*(sp_stride)] = make_short4((short)I5.x, (short)I5.y, (short)I5.z, (short)I5.w);
 
-   return;  
+#endif 
 }
 
-//BEGIN NEW
 #define SPINOR_HOP 6
 
 __global__ void twistGamma5Kernel(float4 *spinor, float *null, float a, float b, float c,  const float4 *in,  const float *null2, DslashParam param)
 {
+#ifdef GPU_NDEG_TWISTED_MASS_DIRAC
    int sid = blockIdx.x * blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;
    
@@ -901,13 +903,14 @@ __global__ void twistGamma5Kernel(float4 *spinor, float *null, float a, float b,
    spinor[flv1_idx + 2  * sp_stride] = c * accum1_0;   
    spinor[flv1_idx + 5  * sp_stride] = c * accum1_1;   
    spinor[flv2_idx + 2  * sp_stride] = c * accum2_0;   
-   spinor[flv2_idx + 5  * sp_stride] = c * accum2_1;    
+   spinor[flv2_idx + 5  * sp_stride] = c * accum2_1;
 
-   return;  
+#endif 
 }
 
 __global__ void twistGamma5Kernel(short4* spinor, float *spinorNorm, float a, float b, float c, const short4 *in, const float *inNorm, DslashParam param)
 {
+#ifdef GPU_NDEG_TWISTED_MASS_DIRAC
    int sid = blockIdx.x * blockDim.x + threadIdx.x;
    if (sid >= param.threads) return;
    
@@ -1170,13 +1173,13 @@ __global__ void twistGamma5Kernel(short4* spinor, float *spinorNorm, float a, fl
    spinor[flv2_idx+2*(sp_stride)] = make_short4((short)accum2_2.x, (short)accum2_2.y, (short)accum2_2.z, (short)accum2_2.w); 
    spinor[flv2_idx+3*(sp_stride)] = make_short4((short)accum2_3.x, (short)accum2_3.y, (short)accum2_3.z, (short)accum2_3.w); 
    spinor[flv2_idx+4*(sp_stride)] = make_short4((short)accum2_4.x, (short)accum2_4.y, (short)accum2_4.z, (short)accum2_4.w); 
-   spinor[flv2_idx+5*(sp_stride)] = make_short4((short)accum2_5.x, (short)accum2_5.y, (short)accum2_5.z, (short)accum2_5.w);   
-
-   return;  
+   spinor[flv2_idx+5*(sp_stride)] = make_short4((short)accum2_5.x, (short)accum2_5.y, (short)accum2_5.z, (short)accum2_5.w);  
+ 
+#endif
 }
 
 #undef SPINOR_HOP
-//END OF NEW
+
 
 
 #undef tmp0_re
@@ -1188,6 +1191,6 @@ __global__ void twistGamma5Kernel(short4* spinor, float *spinorNorm, float a, fl
 #undef tmp3_re
 #undef tmp3_im
 
-#endif //_TWIST_QUDA_CUH
+#endif //_TM_CUDA_H
 
 

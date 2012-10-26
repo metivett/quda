@@ -1076,7 +1076,7 @@ def generate_dslash_kernels(arch):
     twist = True
     dagger = False
     #filename = './new_tm_dslash_' + name + '_core.h'
-    filename = '../dslash_core/tm_ndeg_dslash_core.h'
+    filename = './dslash_core/tm_ndeg_dslash_core.h'
     print sys.argv[0] + ": generating " + filename;
     f = open(filename, 'w')
     f.write(generate_dslash())
@@ -1084,7 +1084,7 @@ def generate_dslash_kernels(arch):
 
     dagger = True
     #filename = './new_tm_dslash_dagger_' + name + '_core.h'
-    filename = '../dslash_core/tm_ndeg_dslash_dagger_core.h'
+    filename = './dslash_core/tm_ndeg_dslash_dagger_core.h'
     print sys.argv[0] + ": generating " + filename + "\n";
     f = open(filename, 'w')
     f.write(generate_dslash())

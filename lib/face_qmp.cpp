@@ -11,6 +11,12 @@
 #include <qmp.h>
 #endif
 
+#define QMP_CHECK(a)							\
+  {QMP_status_t status;							\
+  if ((status = a) != QMP_SUCCESS)					\
+    errorQuda("QMP returned with error %s", QMP_error_string(status) );	\
+  }
+
 using namespace quda;
 
 cudaStream_t *stream;
@@ -28,8 +34,8 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
 		       const int nFace, const QudaPrecision precision, const int Ls) :
   Ninternal(Ninternal), precision(precision), nDim(nDim), nDimComms(nDim), nFace(nFace)
 {
-
   if (nDim > QUDA_MAX_DIM) errorQuda("nDim = %d is greater than the maximum of %d\n", nDim, QUDA_MAX_DIM);
+//BEGIN NEW
   int Y[nDim];
   Y[0] = X[0];
   Y[1] = X[1];
@@ -40,6 +46,9 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
     nDimComms = 4;
   }
   setupDims(Y);
+//END NEW  
+
+  //setupDims(X);
 
   // set these both = 0 separate streams for forwards and backwards comms
   // sendBackStrmIdx = 0, and sendFwdStrmIdx = 1 for overlap
@@ -48,69 +57,26 @@ FaceBuffer::FaceBuffer(const int *X, const int nDim, const int Ninternal,
   recFwdStrmIdx = sendBackStrmIdx;
   recBackStrmIdx = sendFwdStrmIdx;
   
-  unsigned int flag = cudaHostAllocDefault;
-
-  int pad[4] = {0,0,0,0};
-#if (CUDA_VERSION <= 4000)
-  static const int page_size = getpagesize();
-#endif
-  
   // Buffers hold half spinors
   for (int i=0; i<nDimComms; i++) {
     nbytes[i] = nFace*faceVolumeCB[i]*Ninternal*precision;
     // add extra space for the norms for half precision
     if (precision == QUDA_HALF_PRECISION) nbytes[i] += nFace*faceVolumeCB[i]*sizeof(float);
 
-#if (CUDA_VERSION > 4000)
-    my_fwd_face[i] = malloc(nbytes[i]);
-#else
-    pad[i] = page_size - nbytes[i]%page_size;
-    posix_memalign(&my_fwd_face[i], page_size, nbytes[i]+pad[i]);
-#endif
-    if( !my_fwd_face[i] ) errorQuda("Unable to allocate my_fwd_face with size %lu", nbytes[i]+pad[i]);
-    cudaHostRegister(my_fwd_face[i], nbytes[i]+pad[i], flag);
+    my_fwd_face[i] = allocatePinned(nbytes[i]);
+    my_back_face[i] = allocatePinned(nbytes[i]);
 
-#if (CUDA_VERSION > 4000) 
-    my_back_face[i] = malloc(nbytes[i]);
-#else
-    posix_memalign(&my_back_face[i], page_size, nbytes[i]+pad[i]);
-#endif
-    if( !my_back_face[i] ) errorQuda("Unable to allocate my_back_face with size %lu", nbytes[i]+pad[i]);
-    cudaHostRegister(my_back_face[i], nbytes[i]+pad[i], flag);
-  }
-
-  for (int i=0; i<nDimComms; i++) {
 #ifdef QMP_COMMS
 
-#if (CUDA_VERSION > 4000)
-    from_fwd_face[i] = malloc(nbytes[i]);
-#else
-    posix_memalign(&from_fwd_face[i], page_size, nbytes[i]+pad[i]);
-#endif
-    if( !from_fwd_face[i] ) errorQuda("Unable to allocate from_fwd_face with size %lu", nbytes[i]+pad[i]);
-    cudaHostRegister(from_fwd_face[i], nbytes[i]+pad[i], flag);
-
-#if (CUDA_VERSION > 4000)    
-    from_back_face[i] = malloc(nbytes[i]);
-#else
-    posix_memalign(&from_back_face[i], page_size, nbytes[i]+pad[i]);
-#endif
-    if( !from_back_face[i] ) errorQuda("Unable to allocate from_back_face with size %lu", nbytes[i]+pad[i]);
-    cudaHostRegister(from_back_face[i], nbytes[i]+pad[i], flag);
+    from_fwd_face[i] = allocatePinned(nbytes[i]);
+    from_back_face[i] = allocatePinned(nbytes[i]);
 
 // if no GPUDirect so need separate IB and GPU host buffers
 #ifndef GPU_DIRECT
-    ib_my_fwd_face[i] = malloc(nbytes[i]);
-    if (!ib_my_fwd_face[i]) errorQuda("Unable to allocate ib_my_fwd_face with size %lu", nbytes[i]);
-
-    ib_my_back_face[i] = malloc(nbytes[i]);
-    if (!ib_my_back_face[i]) errorQuda("Unable to allocate ib_my_back_face with size %lu", nbytes[i]);
-
-    ib_from_fwd_face[i] = malloc(nbytes[i]);
-    if (!ib_from_fwd_face[i]) errorQuda("Unable to allocate ib_from_fwd_face with size %lu", nbytes[i]);
-
-    ib_from_back_face[i] = malloc(nbytes[i]);
-    if (!ib_from_back_face[i]) errorQuda("Unable to allocate ib_from_back_face with size %lu", nbytes[i]);
+    ib_my_fwd_face[i] = safe_malloc(nbytes[i]);
+    ib_my_back_face[i] = safe_malloc(nbytes[i]);
+    ib_from_fwd_face[i] = safe_malloc(nbytes[i]);
+    ib_from_back_face[i] = safe_malloc(nbytes[i]);
 #else // else just alias the pointer
     ib_my_fwd_face[i] = my_fwd_face[i];
     ib_my_back_face[i] = my_back_face[i];
@@ -189,10 +155,10 @@ FaceBuffer::~FaceBuffer()
 #ifdef QMP_COMMS
 
 #ifndef GPU_DIRECT
-    free(ib_my_fwd_face[i]);
-    free(ib_my_back_face[i]);
-    free(ib_from_fwd_face[i]);
-    free(ib_from_back_face[i]);
+    host_free(ib_my_fwd_face[i]);
+    host_free(ib_my_back_face[i]);
+    host_free(ib_from_fwd_face[i]);
+    host_free(ib_from_back_face[i]);
 #endif
 
     QMP_free_msghandle(mh_send_fwd[i]);
@@ -204,18 +170,13 @@ FaceBuffer::~FaceBuffer()
     QMP_free_msgmem(mm_from_fwd[i]);
     QMP_free_msgmem(mm_from_back[i]);
 
-    cudaHostUnregister(from_fwd_face[i]);
-    free(from_fwd_face[i]);
+    freePinned(from_fwd_face[i]);
+    freePinned(from_back_face[i]);
 
-    cudaHostUnregister(from_back_face[i]);
-    free(from_back_face[i]);
 #endif // QMP_COMMS
 
-    cudaHostUnregister(my_fwd_face[i]);
-    free(my_fwd_face[i]);
-
-    cudaHostUnregister(my_back_face[i]);
-    free(my_back_face[i]);
+    freePinned(my_fwd_face[i]);
+    freePinned(my_back_face[i]);
   }
 
   for (int i=0; i<nDimComms; i++) {
@@ -260,23 +221,23 @@ void FaceBuffer::commsStart(int dir) {
 
 #ifdef QMP_COMMS  // Begin backward send
     // Prepost receive
-    QMP_start(mh_from_fwd[dim]);
+    QMP_CHECK(QMP_start(mh_from_fwd[dim]));
 #ifndef GPU_DIRECT
     memcpy(ib_my_back_face[dim], my_back_face[dim], nbytes[dim]);
 #endif
-    QMP_start(mh_send_back[dim]);
+    QMP_CHECK(QMP_start(mh_send_back[dim]));
 #endif
 
   } else { //sending forwards
     
 #ifdef QMP_COMMS
   // Prepost receive
-    QMP_start(mh_from_back[dim]);
+    QMP_CHECK(QMP_start(mh_from_back[dim]));
     // Begin forward send
 #ifndef GPU_DIRECT
     memcpy(ib_my_fwd_face[dim], my_fwd_face[dim], nbytes[dim]);
 #endif
-    QMP_start(mh_send_fwd[dim]);
+    QMP_CHECK(QMP_start(mh_send_fwd[dim]));
 #endif
   }
 
@@ -377,17 +338,17 @@ void FaceBuffer::exchangeCpuSpinor(cpuColorSpinorField &spinor, int oddBit, int 
   }
 
   for (int i=0; i<4; i++) {
-    QMP_start(mh_from_back[i]);
-    QMP_start(mh_from_fwd[i]);
-    QMP_start(mh_send_fwd[i]);
-    QMP_start(mh_send_back[i]);
+    QMP_CHECK(QMP_start(mh_from_back[i]));
+    QMP_CHECK(QMP_start(mh_from_fwd[i]));
+    QMP_CHECK(QMP_start(mh_send_fwd[i]));
+    QMP_CHECK(QMP_start(mh_send_back[i]));
   }
 
   for (int i=0; i<4; i++) {
-    QMP_wait(mh_send_fwd[i]);
-    QMP_wait(mh_send_back[i]);
-    QMP_wait(mh_from_back[i]);
-    QMP_wait(mh_from_fwd[i]);
+    QMP_CHECK(QMP_wait(mh_send_fwd[i]));
+    QMP_CHECK(QMP_wait(mh_send_back[i]));
+    QMP_CHECK(QMP_wait(mh_from_back[i]));
+    QMP_CHECK(QMP_wait(mh_from_fwd[i]));
   }
 
   for (int i=0; i<4; i++) {
@@ -437,13 +398,13 @@ void FaceBuffer::exchangeCpuLink(void** ghost_link, void** link_sendbuf) {
   }
 
   for (int i=0; i<4; i++) {
-    QMP_start(mh_send_fwd[i]);
-    QMP_start(mh_from_back[i]);
+    QMP_CHECK(QMP_start(mh_send_fwd[i]));
+    QMP_CHECK(QMP_start(mh_from_back[i]));
   }
 
   for (int i=0; i<4; i++) {
-    QMP_wait(mh_send_fwd[i]);
-    QMP_wait(mh_from_back[i]);
+    QMP_CHECK(QMP_wait(mh_send_fwd[i]));
+    QMP_CHECK(QMP_wait(mh_from_back[i]));
   }
 
   for (int i=0; i<4; i++) {
@@ -534,7 +495,7 @@ void transferGaugeFaces(void *gauge, void *gauge_face, QudaPrecision precision,
 void reduceMaxDouble(double &max) {
 
 #ifdef QMP_COMMS
-  QMP_max_double(&max);
+  QMP_CHECK(QMP_max_double(&max));
 #endif
 
 }
@@ -542,7 +503,7 @@ void reduceMaxDouble(double &max) {
 void reduceDouble(double &sum) {
 
 #ifdef QMP_COMMS
-  if (globalReduce) QMP_sum_double(&sum);
+  if (globalReduce) QMP_CHECK(QMP_sum_double(&sum));
 #endif
 
 }
@@ -550,7 +511,7 @@ void reduceDouble(double &sum) {
 void reduceDoubleArray(double *sum, const int len) {
 
 #ifdef QMP_COMMS
-  if (globalReduce) QMP_sum_double_array(sum,len);
+  if (globalReduce) QMP_CHECK(QMP_sum_double_array(sum,len));
 #endif
 
 }

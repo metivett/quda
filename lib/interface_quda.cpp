@@ -28,13 +28,7 @@
 
 #ifdef MULTI_GPU
 extern void exchange_cpu_sitelink_ex(int* X, int *R, void** sitelink, QudaGaugeFieldOrder cpu_order,
-                              QudaPrecision gPrecision, int optflag);
-#ifdef MPI_COMMS
-#include <mpi.h>
-#endif
-#ifdef QMP_COMMS
-#include <qmp.h>
-#endif
+				     QudaPrecision gPrecision, int optflag);
 #endif // MULTI_GPU
 
 #ifdef GPU_GAUGE_FORCE
@@ -62,11 +56,6 @@ extern void exchange_cpu_sitelink_ex(int* X, int *R, void** sitelink, QudaGaugeF
 #define PRINT_PARAM
 #include "check_params.h"
 #undef PRINT_PARAM
-
-#ifdef QMP_COMMS
-int rank_QMP;
-int num_QMP;
-#endif
 
 #include "face_quda.h"
 
@@ -183,27 +172,7 @@ void initQuda(int dev)
 
 #ifdef MULTI_GPU
   comm_init();
-#endif
-
-#ifdef QMP_COMMS
-  int ndim;
-  const int *dim;
-
-  if ( QMP_is_initialized() != QMP_TRUE ) {
-    errorQuda("QMP is not initialized");
-  }
-  num_QMP=QMP_get_number_of_nodes();
-  rank_QMP=QMP_get_node_number();
-  
-  if (dev < 0) {
-    dev = rank_QMP % deviceCount;
-  }
-  ndim = QMP_get_logical_number_of_dimensions();
-  dim = QMP_get_logical_dimensions();
-#elif defined(MPI_COMMS)
-  if (dev < 0) {
-    dev=comm_gpuid();
-  }
+  if (dev < 0) dev = comm_gpuid();
 #else
   if (dev < 0 || dev >= 16) errorQuda("Invalid device number %d", dev);
 #endif
@@ -262,7 +231,7 @@ void loadGaugeQuda(void *h_gauge, QudaGaugeParam *param)
 
   cpuGaugeField cpu(gauge_param);
 
-  profileGauge[QUDA_PROFILE_H2D].Start();  
+  profileGauge[QUDA_PROFILE_INIT].Start();  
   // switch the parameters for creating the mirror precise cuda gauge field
   gauge_param.create = QUDA_NULL_FIELD_CREATE;
   gauge_param.precision = param->cuda_prec;
@@ -271,8 +240,10 @@ void loadGaugeQuda(void *h_gauge, QudaGaugeParam *param)
   gauge_param.order = (gauge_param.precision == QUDA_DOUBLE_PRECISION || 
 		       gauge_param.reconstruct == QUDA_RECONSTRUCT_NO ) ?
     QUDA_FLOAT2_GAUGE_ORDER : QUDA_FLOAT4_GAUGE_ORDER;
-
   cudaGaugeField *precise = new cudaGaugeField(gauge_param);
+  profileGauge[QUDA_PROFILE_INIT].Stop();  
+
+  profileGauge[QUDA_PROFILE_H2D].Start();  
   precise->loadCPUField(cpu, QUDA_CPU_FIELD_LOCATION);
 
   param->gaugeGiB += precise->GBytes();
@@ -511,9 +482,11 @@ void endQuda(void)
 
   if (!initialized) return;
 
+  LatticeField::freeBuffer();
   cudaColorSpinorField::freeBuffer();
   cudaColorSpinorField::freeGhostBuffer();
   cpuColorSpinorField::freeGhostBuffer();
+  FaceBuffer::flushPinnedCache();
   freeGaugeQuda();
   freeCloverQuda();
 
@@ -544,7 +517,13 @@ void endQuda(void)
     profileMulti.Print();
     profileMultiMixed.Print();
     profileEnd.Print();
+
+    printfQuda("\n");
+    printPeakMemUsage();
+    printfQuda("\n");
   }
+
+  assertAllMemFree();
 }
 
 
@@ -764,6 +743,10 @@ namespace quda {
 
 void dslashQuda(void *h_out, void *h_in, QudaInvertParam *inv_param, QudaParity parity)
 {
+  if (inv_param->dslash_type == QUDA_DOMAIN_WALL_DSLASH) setKernelPackT(true);
+//!ndegtm:
+  if (inv_param->twist_flavor == QUDA_TWIST_NONDEG_DOUBLET) setKernelPackT(true);
+
   if (gaugePrecise == NULL) errorQuda("Gauge field not allocated");
   if (cloverPrecise == NULL && inv_param->dslash_type == QUDA_CLOVER_WILSON_DSLASH) 
     errorQuda("Clover field not allocated");
@@ -827,6 +810,11 @@ void dslashQuda(void *h_out, void *h_in, QudaInvertParam *inv_param, QudaParity 
 
 void MatQuda(void *h_out, void *h_in, QudaInvertParam *inv_param)
 {
+
+  if (inv_param->dslash_type == QUDA_DOMAIN_WALL_DSLASH) setKernelPackT(true);
+//!ndegtm:
+  if (inv_param->twist_flavor == QUDA_TWIST_NONDEG_DOUBLET) setKernelPackT(true);
+
   pushVerbosity(inv_param->verbosity);
 
   if (gaugePrecise == NULL) errorQuda("Gauge field not allocated");
@@ -895,6 +883,11 @@ void MatQuda(void *h_out, void *h_in, QudaInvertParam *inv_param)
 
 void MatDagMatQuda(void *h_out, void *h_in, QudaInvertParam *inv_param)
 {
+
+  if (inv_param->dslash_type == QUDA_DOMAIN_WALL_DSLASH) setKernelPackT(true);
+//!ndegtm:
+  if (inv_param->twist_flavor == QUDA_TWIST_NONDEG_DOUBLET) setKernelPackT(true);
+
   pushVerbosity(inv_param->verbosity);
 
   if (!initialized) errorQuda("QUDA not initialized");
@@ -1058,6 +1051,11 @@ void cloverQuda(void *h_out, void *h_in, QudaInvertParam *inv_param, QudaParity 
 
 void invertQuda(void *hp_x, void *hp_b, QudaInvertParam *param)
 {
+
+  if (param->dslash_type == QUDA_DOMAIN_WALL_DSLASH) setKernelPackT(true);
+//!ndegtm:
+  if (param->twist_flavor == QUDA_TWIST_NONDEG_DOUBLET) setKernelPackT(true);
+
   profileInvert[QUDA_PROFILE_TOTAL].Start();
 
   if (!initialized) errorQuda("QUDA not initialized");
@@ -1209,16 +1207,19 @@ void invertQuda(void *hp_x, void *hp_b, QudaInvertParam *param)
     Solver *solve = Solver::create(*param, m, mSloppy, mPre, profileInvert);
     (*solve)(*out, *in);
     copyCuda(*in, *out);
+    delete solve;
   }
 
   if (direct_solve) {
     DiracM m(dirac), mSloppy(diracSloppy), mPre(diracPre);
     Solver *solve = Solver::create(*param, m, mSloppy, mPre, profileInvert);
     (*solve)(*out, *in);
+    delete solve;
   } else {
     DiracMdagM m(dirac), mSloppy(diracSloppy), mPre(diracPre);
     Solver *solve = Solver::create(*param, m, mSloppy, mPre, profileInvert);
     (*solve)(*out, *in);
+    delete solve;
   }
 
   if (getVerbosity() >= QUDA_VERBOSE){
@@ -1265,6 +1266,11 @@ void invertQuda(void *hp_x, void *hp_b, QudaInvertParam *param)
  */
 void invertMultiShiftQuda(void **_hp_x, void *_hp_b, QudaInvertParam *param)
 {
+
+  if (param->dslash_type == QUDA_DOMAIN_WALL_DSLASH) setKernelPackT(true);
+//!ndegtm:
+  if (param->twist_flavor == QUDA_TWIST_NONDEG_DOUBLET) setKernelPackT(true);
+
   profileMulti[QUDA_PROFILE_TOTAL].Start();
 
   if (!initialized) errorQuda("QUDA not initialized");
@@ -1889,42 +1895,16 @@ computeGaugeForceQuda(void* mom, void* sitelink,  int*** input_path_buf, int* pa
 
 
 void initCommsQuda(int argc, char **argv, const int *X, int nDim) {
-  if (nDim != 4) errorQuda("Comms dimensions %d != 4", nDim);
-
 #ifdef MULTI_GPU
-
-#ifdef QMP_COMMS
-  QMP_thread_level_t tl;
-  QMP_init_msg_passing(&argc, &argv, QMP_THREAD_SINGLE, &tl);
-
-  QMP_declare_logical_topology(X, nDim);
-#elif defined(MPI_COMMS)
-  MPI_Init (&argc, &argv);  
-
-  int volume = 1;
-  for (int d=0; d<nDim; d++) volume *= X[d];
-  int size = -1;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  if (volume != size)
-    errorQuda("Number of processes %d must match requested MPI volume %d",
-	      size, volume);
-
-  comm_set_gridsize(X[0], X[1], X[2], X[3]);  
+  comm_create(argc, argv);
+  comm_set_gridsize(X, nDim);  
   comm_init();
-#endif
-
 #endif
 }
 
 void endCommsQuda() {
 #ifdef MULTI_GPU
-
-#ifdef QMP_COMMS
-  QMP_finalize_msg_passing();
-#elif defined MPI_COMMS
   comm_cleanup();
-#endif 
-
 #endif
 }
 
@@ -1956,9 +1936,7 @@ void new_quda_invert_param_(QudaInvertParam *param) {
   *param = newQudaInvertParam();
 }
 void comm_set_gridsize_(int *grid) {
-#ifdef MPI_COMMS 
-  comm_set_gridsize(grid[0], grid[1], grid[2], grid[3]);
-#else
-  errorQuda("Not implemented for non-MPI communications");
+#ifdef MULTI_GPU
+  comm_set_gridsize(grid, 4);
 #endif
 }

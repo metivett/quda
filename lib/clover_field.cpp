@@ -36,17 +36,11 @@ namespace quda {
 				   const CloverFieldParam &param)
     : CloverField(param), clover(0), norm(0), cloverInv(0), invNorm(0)
   {
-  
-
     if (h_clov) {
-      if (cudaMalloc((void**)&clover, bytes) == cudaErrorMemoryAllocation) {
-	errorQuda("Error allocating clover term");
-      }   
-    
+
+      clover = device_malloc(bytes);
       if (precision == QUDA_HALF_PRECISION) {
-	if (cudaMalloc((void**)&norm, norm_bytes) == cudaErrorMemoryAllocation) {
-	  errorQuda("Error allocating clover norm");
-	}
+	norm = device_malloc(norm_bytes);
       }
 
       even = clover;
@@ -59,14 +53,9 @@ namespace quda {
     } 
 
     if (h_clov_inv) {
-      if (cudaMalloc((void**)&cloverInv, bytes) == cudaErrorMemoryAllocation) {
-	errorQuda("Error allocating clover inverse term");
-      }   
-    
+      cloverInv = device_malloc(bytes);
       if (precision == QUDA_HALF_PRECISION) {
-	if (cudaMalloc((void**)&invNorm, norm_bytes) == cudaErrorMemoryAllocation) {
-	  errorQuda("Error allocating clover inverse norm");
-	}
+	invNorm = device_malloc(bytes);
       }
 
       evenInv = cloverInv;
@@ -95,14 +84,14 @@ namespace quda {
 
   }
 
-  cudaCloverField::~cudaCloverField() {
+  cudaCloverField::~cudaCloverField()
+  {
     if (clover != cloverInv) {
-      if ( clover ) cudaFree(clover);
-      if ( norm ) cudaFree(norm);
+      if (clover) device_free(clover);
+      if (norm) device_free(norm);
     }
-
-    if ( cloverInv ) cudaFree(cloverInv);
-    if ( invNorm ) cudaFree(invNorm);
+    if (cloverInv) device_free(cloverInv);
+    if (invNorm) device_free(invNorm);
     
     checkCudaError();
   }
@@ -297,7 +286,7 @@ namespace quda {
 					const QudaPrecision cpu_prec, const CloverFieldOrder cpu_order)
   {
     // use pinned memory                                                                                           
-    void *packedClover, *packedCloverNorm;
+    void *packedClover, *packedCloverNorm=0;
 
     if (precision == QUDA_DOUBLE_PRECISION && cpu_prec != QUDA_DOUBLE_PRECISION) {
       errorQuda("Cannot have CUDA double precision without CPU double precision");
@@ -305,16 +294,10 @@ namespace quda {
     if (cpu_order != QUDA_PACKED_CLOVER_ORDER && cpu_order != QUDA_BQCD_CLOVER_ORDER) 
       errorQuda("Invalid clover order %d", cpu_order);
 
-    if (cudaMallocHost(&packedClover, bytes/2) == cudaErrorMemoryAllocation)
-      errorQuda("Error allocating clover pinned memory");
+    resizeBuffer(bytes/2 + norm_bytes/2);
+    packedClover = bufferPinned;
+    if (precision == QUDA_HALF_PRECISION) packedCloverNorm = (char*)bufferPinned + bytes/2;
 
-    if (precision == QUDA_HALF_PRECISION) {
-      if (cudaMallocHost(&packedCloverNorm, norm_bytes/2) == cudaErrorMemoryAllocation)
-	{
-	  errorQuda("Error allocating clover pinned memory");
-	} 
-    }
-    
     if (precision == QUDA_DOUBLE_PRECISION) {
       packParityClover((double2 *)packedClover, (double *)h_clover, volumeCB, pad, cpu_order);
     } else if (precision == QUDA_SINGLE_PRECISION) {
@@ -336,9 +319,6 @@ namespace quda {
     cudaMemcpy(clover, packedClover, bytes/2, cudaMemcpyHostToDevice);
     if (precision == QUDA_HALF_PRECISION)
       cudaMemcpy(cloverNorm, packedCloverNorm, norm_bytes/2, cudaMemcpyHostToDevice);
-
-    cudaFreeHost(packedClover);
-    if (precision == QUDA_HALF_PRECISION) cudaFreeHost(packedCloverNorm);
   }
 
   void cudaCloverField::loadFullField(void *even, void *evenNorm, void *odd, void *oddNorm, 
@@ -346,7 +326,7 @@ namespace quda {
 				      const CloverFieldOrder cpu_order)
   {
     // use pinned memory                  
-    void *packedEven, *packedEvenNorm, *packedOdd, *packedOddNorm;
+    void *packedEven, *packedOdd, *packedEvenNorm=0, *packedOddNorm=0;
 
     if (precision == QUDA_DOUBLE_PRECISION && cpu_prec != QUDA_DOUBLE_PRECISION) {
       errorQuda("Cannot have CUDA double precision without CPU double precision");
@@ -355,19 +335,13 @@ namespace quda {
       errorQuda("Invalid clover order");
     }
 
-    if (cudaMallocHost(&packedEven, bytes/2) ==  cudaErrorMemoryAllocation){
-      errorQuda("cudaMallocHost failed for packedEven\n");
-    }
-    if ( cudaMallocHost(&packedOdd, bytes/2) == cudaErrorMemoryAllocation){
-      errorQuda("cudaMallocHost failed for packedOdd\n");
-    }
+    resizeBuffer(bytes + norm_bytes);
+    packedEven = bufferPinned;
+    packedOdd = (char*)bufferPinned + bytes/2;
+
     if (precision == QUDA_HALF_PRECISION) {
-      if (cudaMallocHost(&packedEvenNorm, norm_bytes/2) == cudaErrorMemoryAllocation){
-	errorQuda("cudaMallocHost failed for packedEvenNorm\n");
-      }
-      if (cudaMallocHost(&packedOddNorm, norm_bytes/2) == cudaErrorMemoryAllocation){
-	errorQuda("cudaMallocHost failed for packedOddNorm\n");
-      }
+      packedEvenNorm = (char*)bufferPinned + bytes;
+      packedOddNorm = (char*)bufferPinned + bytes + norm_bytes/2;
     }
     
     if (precision == QUDA_DOUBLE_PRECISION) {
@@ -393,13 +367,6 @@ namespace quda {
     if (precision == QUDA_HALF_PRECISION) {
       cudaMemcpy(evenNorm, packedEvenNorm, norm_bytes/2, cudaMemcpyHostToDevice);
       cudaMemcpy(oddNorm, packedOddNorm, norm_bytes/2, cudaMemcpyHostToDevice);
-    }
-
-    cudaFreeHost(packedEven);
-    cudaFreeHost(packedOdd);
-    if (precision == QUDA_HALF_PRECISION) {
-      cudaFreeHost(packedEvenNorm);
-      cudaFreeHost(packedOddNorm);
     }
   }
 

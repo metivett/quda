@@ -4,13 +4,13 @@
 #include <string.h>
 #include <mpi.h>
 #include <comm_quda.h>
+#include <quda_internal.h>
 
 static char hostname[128] = "undetermined";
 static int fwd_nbr=-1;
 static int back_nbr=-1;
 static int rank = 0;
 static int size = -1;
-extern int verbose;
 static int num_nodes;
 extern int getGpuCount();
 static int which_gpu = -1;
@@ -38,12 +38,23 @@ static int manual_set_partition[4] ={0, 0, 0, 0};
 #define X_FASTEST_DIM_NODE_RANKING
 
 void
-comm_set_gridsize(int x, int y, int z, int t)
+comm_set_gridsize(const int *X, int nDim)
 {
-  xgridsize = x;
-  ygridsize = y;
-  zgridsize = z;
-  tgridsize = t;
+  if (nDim != 4) errorQuda("Comms dimensions %d != 4", nDim);
+
+  xgridsize = X[0];
+  ygridsize = X[1];
+  zgridsize = X[2];
+  tgridsize = X[3];
+
+  int volume = 1;
+  for (int i=0; i<nDim; i++) volume *= X[i];
+
+  int size = -1;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  if (volume != size)
+    errorQuda("Number of processes %d must match requested MPI volume %d",
+	      size, volume);
 
   return;
 }
@@ -128,7 +139,8 @@ comm_partition(void)
 #define GRID_ID(xid,yid,zid,tid) (xid*ygridsize*zgridsize*tgridsize+yid*zgridsize*tgridsize+zid*tgridsize+tid)
 #endif
 
-  printf("My rank: %d, gridid(t,z,y,x): %d %d %d %d\n", rank, tgridid, zgridid, ygridid, xgridid);
+  if (getVerbosity() >= QUDA_DEBUG_VERBOSE)
+    printf("My rank: %d, gridid(t,z,y,x): %d %d %d %d\n", rank, tgridid, zgridid, ygridid, xgridid);
 
 
   int xid, yid, zid, tid;
@@ -168,10 +180,12 @@ comm_partition(void)
   tid=(tgridid -1+tgridsize)%tgridsize;
   t_back_nbr = GRID_ID(xid,yid,zid,tid);
 
-  printf("MPI rank: rank=%d, hostname=%s, x_fwd_nbr=%d, x_back_nbr=%d\n", rank, comm_hostname(), x_fwd_nbr, x_back_nbr);
-  printf("MPI rank: rank=%d, hostname=%s, y_fwd_nbr=%d, y_back_nbr=%d\n", rank, comm_hostname(), y_fwd_nbr, y_back_nbr);
-  printf("MPI rank: rank=%d, hostname=%s, z_fwd_nbr=%d, z_back_nbr=%d\n", rank, comm_hostname(), z_fwd_nbr, z_back_nbr);
-  printf("MPI rank: rank=%d, hostname=%s, t_fwd_nbr=%d, t_back_nbr=%d\n", rank, comm_hostname(), t_fwd_nbr, t_back_nbr);
+  if (getVerbosity() >= QUDA_DEBUG_VERBOSE) {
+    printf("MPI rank: rank=%d, hostname=%s, x_fwd_nbr=%d, x_back_nbr=%d\n", rank, comm_hostname(), x_fwd_nbr, x_back_nbr);
+    printf("MPI rank: rank=%d, hostname=%s, y_fwd_nbr=%d, y_back_nbr=%d\n", rank, comm_hostname(), y_fwd_nbr, y_back_nbr);
+    printf("MPI rank: rank=%d, hostname=%s, z_fwd_nbr=%d, z_back_nbr=%d\n", rank, comm_hostname(), z_fwd_nbr, z_back_nbr);
+    printf("MPI rank: rank=%d, hostname=%s, t_fwd_nbr=%d, t_back_nbr=%d\n", rank, comm_hostname(), t_fwd_nbr, t_back_nbr);
+  }
 }
 
 int 
@@ -196,6 +210,10 @@ comm_get_neighbor_rank(int dx, int dy, int dz, int dt)
   return ret;
 }
 
+void comm_create(int argc, char **argv)
+{
+  MPI_Init (&argc, &argv);  
+}
 
 void 
 comm_init(void)
@@ -203,9 +221,7 @@ comm_init(void)
   int i;
   
   static int firsttime=1;
-  if (!firsttime){ 
-    return;
-  }
+  if (!firsttime) return;
   firsttime = 0;
 
   gethostname(hostname, 128);
@@ -226,11 +242,7 @@ comm_init(void)
   }
 
   //determine which gpu this MPI process is going to use
-  char* hostname_recv_buf = (char*)malloc(128*size);
-  if(hostname_recv_buf == NULL){
-    printf("ERROR: malloc failed for host_recv_buf\n");
-    comm_exit(1);
-  }
+  char* hostname_recv_buf = (char*)safe_malloc(128*size);
   
   int rc = MPI_Allgather(hostname, 128, MPI_CHAR, hostname_recv_buf, 128, MPI_CHAR, MPI_COMM_WORLD);
   if (rc != MPI_SUCCESS){
@@ -255,7 +267,7 @@ comm_init(void)
   
   srand(rank*999);
   
-  free(hostname_recv_buf);
+  host_free(hostname_recv_buf);
   return;
 }
 
@@ -339,10 +351,6 @@ comm_send(void* buf, int len, int dst, void* _request)
 {
   
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
 
   int dstproc;
   int sendtag=99;
@@ -366,10 +374,6 @@ comm_send_to_rank(void* buf, int len, int dst_rank, void* _request)
 {
   
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
   
   if(dst_rank < 0 || dst_rank >= comm_size()){
     printf("ERROR: Invalid dst rank(%d)\n", dst_rank);
@@ -383,12 +387,7 @@ comm_send_to_rank(void* buf, int len, int dst_rank, void* _request)
 unsigned long
 comm_send_with_tag(void* buf, int len, int dst, int tag, void*_request)
 {
-
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
 
   int dstproc = -1;
   switch(dst){
@@ -431,10 +430,6 @@ unsigned long
 comm_recv(void* buf, int len, int src, void*_request)
 {
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
   
   int srcproc=-1;
   int recvtag=99; //recvtag is opposite to the sendtag
@@ -458,10 +453,6 @@ unsigned long
 comm_recv_from_rank(void* buf, int len, int src_rank, void* _request)
 {
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
   
   if(src_rank < 0 || src_rank >= comm_size()){
     printf("ERROR: Invalid src rank(%d)\n", src_rank);
@@ -478,10 +469,6 @@ unsigned long
 comm_recv_with_tag(void* buf, int len, int src, int tag, void* _request)
 { 
   MPI_Request* request = (MPI_Request*)_request;
-  if (request == NULL){
-    printf("ERROR: malloc failed for mpi request\n");
-    comm_exit(1);
-  }
   
   int srcproc=-1;
   switch (src){
@@ -531,10 +518,6 @@ int comm_query(void* request)
   return query;
 }
 
-void comm_free(void* request) {
-  free((void*)request);
-  return;
-}
 
 //this request should be some return value from comm_recv
 void 

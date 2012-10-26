@@ -143,11 +143,9 @@ namespace quda {
     // stopping condition of each shift
     double stop[QUDA_MAX_MULTI_SHIFT];
     double r2[QUDA_MAX_MULTI_SHIFT];
-    bool finished[QUDA_MAX_MULTI_SHIFT];
     for (int i=0; i<num_offset; i++) {
       r2[i] = b2;
       stop[i] = r2[i] * invParam.tol_offset[i] * invParam.tol_offset[i];
-      finished[i] = 0;
     }
 
     double r2_old;
@@ -261,7 +259,6 @@ namespace quda {
 	  if (invParam.verbosity >= QUDA_VERBOSE)
 	    printfQuda("MultiShift CG: Shift %d converged after %d iterations\n", j, k+1);
 	  num_offset_now--;
-	  finished[j] = 1;
 	}
       }
 
@@ -297,7 +294,11 @@ namespace quda {
       }
       double true_res = xmyNormCuda(b, *r);
       invParam.true_res_offset[i] = sqrt(true_res/b2);
+#if (__COMPUTE_CAPABILITY__ >= 200)
       invParam.true_res_hq_offset[i] = sqrt(HeavyQuarkResidualNormCuda(*x[i], *r).z);
+#else
+      invParam.true_res_hq_offset[i] = 0.0;
+#endif   
     }
 
     if (invParam.verbosity >= QUDA_SUMMARIZE){

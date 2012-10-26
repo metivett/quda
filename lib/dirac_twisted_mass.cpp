@@ -44,7 +44,7 @@ namespace quda {
     {
       double flavor_mu = in.TwistFlavor() * mu;
       twistGamma5Cuda(&out, &in, dagger, kappa, flavor_mu, 0.0, twistType);
-      flops += 24*in.Volume();
+      flops += 24ll*in.Volume();
     }
     else
     {
@@ -182,7 +182,7 @@ namespace quda {
         setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda
         initSpinorConstants(in);
         twistedMassDslashCuda(&out, gauge, &in, parity, dagger, 0, kappa, flavor_mu, 0.0, commDim);
-        flops += (1320+72)*in.Volume();
+        flops += 1392ll*in.Volume();
       } else { // safe to use tmp2 here which may alias in
         bool reset = newTmp(&tmp2, in);
       
@@ -190,7 +190,7 @@ namespace quda {
         TwistInv(*tmp2, in);
         DiracWilson::Dslash(out, *tmp2, parity);
 
-        flops += 72*in.Volume();
+        flops += 72ll*in.Volume();
 
         // if the pointers alias, undo the twist
         if (tmp2->V() == in.V()) Twist(*tmp2, *tmp2); 
@@ -226,7 +226,7 @@ namespace quda {
         twistGamma5Cuda(doubletTmp, &in, dagger, a, b, c, QUDA_TWIST_GAMMA5_INVERSE);//??      
         twistedMassDslashCuda(&out, gauge, doubletTmp, parity, dagger, 0, /*kappa = */0.0, /*mu = */0.0, /*epsilon = */1.0, commDim);      
 
-        flops += (1320+72+24)*in.Volume();
+        flops += 1416ll*in.Volume();
 
         deleteTmp(&doubletTmp, reset);
       }
@@ -250,7 +250,7 @@ namespace quda {
         setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda
         initSpinorConstants(in);      
         twistedMassDslashCuda(&out, gauge, &in, parity, dagger, &x, kappa, flavor_mu, k, commDim);
-        flops += (1320+96)*in.Volume();
+        flops += 1416ll*in.Volume();
       } else { // tmp1 can alias in, but tmp2 can alias x so must not use this
         bool reset = newTmp(&tmp1, in);
         initSpinorConstants(in);
@@ -258,7 +258,7 @@ namespace quda {
         TwistInv(*tmp1, in);
         DiracWilson::Dslash(out, *tmp1, parity);
         xpayCuda((cudaColorSpinorField&)x, k, out);
-        flops += 96*in.Volume();
+        flops += 96ll*in.Volume();
 
         // if the pointers alias, undo the twist
         if (tmp1->V() == in.V()) Twist(*tmp1, *tmp1); 
@@ -286,7 +286,7 @@ namespace quda {
         c *= k;//(-kappa*kappa)	  
         //setFace(face); 
         twistedMassDslashCuda(&out, gauge, &in, parity, dagger, &x, a, b, c, commDim);
-        flops += (1320+96+24)*in.Volume();
+        flops += 1440ll*in.Volume();
       }
       else{
         cudaColorSpinorField *doubletTmp=0; 
@@ -296,7 +296,7 @@ namespace quda {
         twistGamma5Cuda(doubletTmp, &in, dagger, a, b, c, QUDA_TWIST_GAMMA5_INVERSE);
         c = k;	  
         twistedMassDslashCuda(&out, gauge, doubletTmp, parity, dagger, &x, 0.0, 0.0, c, commDim);
-        flops += (1320+96+24)*in.Volume();
+        flops += 1440ll*in.Volume();
         deleteTmp(&doubletTmp, reset);	  
       }
     }
@@ -370,7 +370,6 @@ namespace quda {
     deleteTmp(&tmp2, reset);
   }
 
-#if 1
   void DiracTwistedMassPC::prepare(cudaColorSpinorField* &src, cudaColorSpinorField* &sol,
 				   cudaColorSpinorField &x, cudaColorSpinorField &b, 
 				   const QudaSolutionType solType) const
@@ -499,66 +498,6 @@ commDim);
     deleteTmp(&tmp1, reset);
   }
   
-#endif  
-
-#if 0
-  void DiracTwistedMassPC::prepare(cudaColorSpinorField* &src, cudaColorSpinorField* &sol,
-				   cudaColorSpinorField &x, cudaColorSpinorField &b, 
-				   const QudaSolutionType solType) const
-  {
-    // we desire solution to preconditioned system
-    if (solType == QUDA_MATPC_SOLUTION || solType == QUDA_MATPCDAG_MATPC_SOLUTION) {
-      src = &b;
-      sol = &x;
-      return;
-    }
-
-    bool reset = newTmp(&tmp1, b.Even());
-  
-    // we desire solution to preconditioned system
-
-    double a  = 2.0 * kappa * mu;  
-    double bb = 2.0 * kappa * epsilon;
-  
-    double d = (1.0 + a*a - bb*bb);
-    if(d <= 0) errorQuda("Invalid twisted mass parameter\n");
-    double c = 1.0 / d;
-    
-      // we desire solution to full system
-      // src = A_ee^-1(b_e + k D_eo A_oo^-1 b_o)
-        src = &(x.Odd());
-      //	
-      initSpinorConstants(*src);
-  //!ndeg tm:
-      setFace(face); // FIXME: temporary hack maintain C linkage for dslashCuda  
-      //   
-      int flv_stride = src->Volume()/2;//if (in.SiteSubset() == QUDA_PARITY_SITE_SUBSET)
-      initTwistedMassConstants(flv_stride);     
-	
-//!Debug zone:	
-printf("\nStart check here\n");      
-double check = norm2(b.Odd());
-printf("\nOdd Norm : %le\n", check);
-check = norm2(b.Even());
-printf("\nEven Norm: %le\n", check);
-        twistGamma5Cuda(src, &b.Odd(), dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack! 
-check = norm2(*src);
-printf("\nNorm vector 1: %le\n", check);	
-        twistedMassDslashCuda(tmp1, gauge, src, QUDA_EVEN_PARITY, dagger, &b.Even(), 0.0, 0.0, kappa, commDim);
-//DslashXpay(*tmp1, *src, QUDA_EVEN_PARITY, b.Even(), kappa);	
-check = norm2(*tmp1);
-printf("\nNorm vector 2: %le\n", check);	
-        twistGamma5Cuda(src, tmp1, dagger, a, bb, c, QUDA_TWIST_GAMMA5_DIRECT);//temporal hack!
-
-        sol = &(x.Even()); 
-//!End of debug zone	
-    // here we use final solution to store parity solution and parity source
-    // b is now up for grabs if we want
-    deleteTmp(&tmp1, reset);
-  }
-
-#endif
-
   void DiracTwistedMassPC::reconstruct(cudaColorSpinorField &x, const cudaColorSpinorField &b,
 				const QudaSolutionType solType) const
   {

@@ -117,12 +117,17 @@ __global__ void reduceKernel(InputX X, InputY Y, InputZ Z, InputW W, InputV V, R
     W.load(w, i);
     V.load(v, i);
 
+#if (__COMPUTE_CAPABILITY__ >= 200)
     r.pre();
+#endif
+
 
 #pragma unroll
     for (int j=0; j<M; j++) r(sum, x[j], y[j], z[j], w[j], v[j]);
 
+#if (__COMPUTE_CAPABILITY__ >= 200)
     r.post(sum);
+#endif
 
     if (writeX) XX.save(x, i);
     if (writeY) YY.save(y, i);
@@ -400,7 +405,8 @@ private:
 public:
   ReduceCuda(doubleN &result, InputX &X, InputY &Y, InputZ &Z, InputW &W, InputV &V, Reducer &r, 
 	     OutputX &XX, OutputY &YY, OutputZ &ZZ, int length) :
-  result(result), X(X), Y(Y), Z(Z), W(W), V(V), r(r), XX(XX), YY(YY), ZZ(ZZ), length(length)
+    result(result), X(X), Y(Y), Z(Z), W(W), V(V), r(r), XX(XX), YY(YY), ZZ(ZZ), 
+    X_h(0), Y_h(0), Z_h(0), Xnorm_h(0), Ynorm_h(0), Znorm_h(0), length(length)
     { ; }
   virtual ~ReduceCuda() { }
 
