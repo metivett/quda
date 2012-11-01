@@ -577,14 +577,20 @@ namespace quda {
     if (dim !=3 || getKernelPackT()) { // use kernels to pack into contiguous buffers then a single cudaMemcpy
       void* gpu_buf = this->backGhostFaceBuffer[dim];
       if(this->nDim == 5)//!For DW fermions
+      {
 //!ndeg tm:
         if(this->TwistFlavor() == QUDA_TWIST_INVALID)
-	  packFaceDW(gpu_buf, *this, dim, dagger, parity, *stream);
+          packFaceDW(gpu_buf, *this, dim, dagger, parity, *stream);
 //!ndeg tm:
         else if(this->TwistFlavor() == QUDA_TWIST_NONDEG_DOUBLET)
-	  packFaceNdegTM(gpu_buf, *this, dim, dagger, parity, *stream);
-      else	
-	packFace(gpu_buf, *this, dim, dagger, parity, *stream); 
+        {
+          packFaceNdegTM(gpu_buf, *this, dim, dagger, parity, *stream);
+        }
+      }
+      else
+      {
+    	packFace(gpu_buf, *this, dim, dagger, parity, *stream);
+      }
     }
 #else
     errorQuda("packGhost not built on single-GPU build");
