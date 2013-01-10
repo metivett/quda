@@ -680,7 +680,7 @@ struct PackParam {
 template <int dim, int dagger>
 static inline __device__ void packFaceWilsonCore(double2 *out, float *outNorm, const double2 *in, const float *inNorm,
 						 const int &idx, const int &face_idx, const int &face_volume, 
-						 const int &face_num, PackParam<double2> &param)
+						 const int &face_num, const PackParam<double2> &param)
 {
 #if (__COMPUTE_CAPABILITY__ >= 130)
     if (dagger) {

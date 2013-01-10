@@ -6,4 +6,3 @@
 tests/*_test
 make.inc
 nb_project
-build
