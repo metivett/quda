@@ -145,7 +145,9 @@ namespace quda {
     void *ptr;
 
     a.size = a.base_size = size;
-    printf("Malloc size = %d \n", size);
+    int* device;
+    cudaGetDevice (device);
+    printf("Malloc size = %d in device %d \n", size, *device);
     cudaError_t err = cudaMalloc(&ptr, size);
     if (err != cudaSuccess) {
       printfQuda("ERROR: Failed to allocate device memory (%s:%d in %s())\n", file, line, func);
