@@ -4,6 +4,7 @@
 #include <map>
 #include <unistd.h> // for getpagesize()
 #include <quda_internal.h>
+#include <malloc.h>
 
 namespace quda {
 
