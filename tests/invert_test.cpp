@@ -299,14 +299,14 @@ int main(int argc, char **argv)
 
   // load the clover term, if desired
   if (dslash_type == QUDA_CLOVER_WILSON_DSLASH) loadCloverQuda(clover, clover_inv, &inv_param);
-
+  printf("L302 reached! \n");
   // perform the inversion
   if (multi_shift) {
     invertMultiShiftQuda(spinorOutMulti, spinorIn, &inv_param);
   } else {
     invertQuda(spinorOut, spinorIn, &inv_param);
   }
-
+printf("L309 reached! \n");
   // stop the timer
   time0 += clock();
   time0 /= CLOCKS_PER_SEC;
