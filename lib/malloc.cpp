@@ -149,7 +149,7 @@ namespace quda {
     int* d = new int;
     cudaGetDevice (d);
     cudaError_t err = cudaMalloc(&ptr, size);
-    printf("Malloc size = %d in device %d (pointer %d) \n", size, *d, ptr);
+    printf("Malloc size = %d in device %d (pointer %p) \n", size, *d, ptr);
     delete d;
     if (err != cudaSuccess) {
       printfQuda("ERROR: Failed to allocate device %d memory (%s:%d in %s())\n", *d, file, line, func);
@@ -241,7 +241,7 @@ namespace quda {
     }
     int* d = new int;
     cudaGetDevice (d);
-    printf("Free pointer %d in device %d \n", ptr, *d);
+    printf("Free pointer %p in device %d \n", ptr, *d);
     delete d;
     cudaError_t err = cudaFree(ptr);
     if (err != cudaSuccess) {
