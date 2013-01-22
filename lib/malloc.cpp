@@ -145,7 +145,7 @@ namespace quda {
     void *ptr;
 
     a.size = a.base_size = size;
-    int* d;
+    int* d = new int;
     cudaGetDevice (d);
     printf("Malloc size = %d in device %d \n", size, *d);
     cudaError_t err = cudaMalloc(&ptr, size);
