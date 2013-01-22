@@ -237,6 +237,10 @@ namespace quda {
       printfQuda("ERROR: Attempt to free invalid device pointer (%s:%d in %s())\n", file, line, func);
       errorQuda("Aborting");
     }
+    size_t size = malloc_usable_size(ptr);
+    int* d = new int;
+    cudaGetDevice (d);
+    printf("Free size = %d in device %d \n", size, *d);
     cudaError_t err = cudaFree(ptr);
     if (err != cudaSuccess) {
       printfQuda("ERROR: Failed to free device memory (%s:%d in %s())\n", file, line, func);
