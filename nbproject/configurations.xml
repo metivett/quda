@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="84">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df name="quda" root=".">
+      <df name="include">
+        <in>blas_quda.h</in>
+        <in>clover_field.h</in>
+        <in>color_spinor_field.h</in>
+        <in>color_spinor_field_order.h</in>
+        <in>comm_quda.h</in>
+        <in>convert.h</in>
+        <in>dirac_quda.h</in>
+        <in>double_single.h</in>
+        <in>dslash_quda.h</in>
+        <in>enum_quda.h</in>
+        <in>enum_quda_fortran.h</in>
+        <in>face_quda.h</in>
+        <in>fat_force_quda.h</in>
+        <in>fermion_force_quda.h</in>
+        <in>float_vector.h</in>
+        <in>gauge_field.h</in>
+        <in>gauge_force_quda.h</in>
+        <in>hisq_force_quda.h</in>
+        <in>hisq_links_quda.h</in>
+        <in>hw_quda.h</in>
+        <in>inline_ptx.h</in>
+        <in>invert_quda.h</in>
+        <in>lattice_field.h</in>
+        <in>llfat_quda.h</in>
+        <in>malloc_quda.h</in>
+        <in>misc_helpers.h</in>
+        <in>numa_affinity.h</in>
+        <in>quda.h</in>
+        <in>quda_fortran.h</in>
+        <in>quda_internal.h</in>
+        <in>quda_new_interace.h</in>
+        <in>texture.h</in>
+        <in>tune_quda.h</in>
+        <in>util_quda.h</in>
+      </df>
+      <df name="lib">
+        <df name="dslash_core">
+          <in>asym_wilson_clover_dslash_dagger_fermi_core.h</in>
+          <in>asym_wilson_clover_dslash_dagger_g80_core.h</in>
+          <in>asym_wilson_clover_dslash_dagger_gt200_core.h</in>
+          <in>asym_wilson_clover_dslash_fermi_core.h</in>
+          <in>asym_wilson_clover_dslash_g80_core.h</in>
+          <in>asym_wilson_clover_dslash_gt200_core.h</in>
+          <in>clover_core.h</in>
+          <in>dw_dslash_core.h</in>
+          <in>dw_dslash_dagger_core.h</in>
+          <in>staggered_dslash_core.h</in>
+          <in>tm_core.h</in>
+          <in>tm_dslash_dagger_fermi_core.h</in>
+          <in>tm_dslash_dagger_g80_core.h</in>
+          <in>tm_dslash_dagger_gt200_core.h</in>
+          <in>tm_dslash_fermi_core.h</in>
+          <in>tm_dslash_g80_core.h</in>
+          <in>tm_dslash_gt200_core.h</in>
+          <in>wilson_dslash_dagger_fermi_core.h</in>
+          <in>wilson_dslash_dagger_g80_core.h</in>
+          <in>wilson_dslash_dagger_gt200_core.h</in>
+          <in>wilson_dslash_fermi_core.h</in>
+          <in>wilson_dslash_g80_core.h</in>
+          <in>wilson_dslash_gt200_core.h</in>
+          <in>wilson_pack_face_core.h</in>
+          <in>wilson_pack_face_dagger_core.h</in>
+        </df>
+        <df name="generate">
+        </df>
+        <in>blas_core.h</in>
+        <in>blas_cpu.cpp</in>
+        <in>blas_quda.cu</in>
+        <in>check_params.h</in>
+        <in>clover_def.h</in>
+        <in>clover_field.cpp</in>
+        <in>clover_quda.cu</in>
+        <in>color_spinor_field.cpp</in>
+        <in>comm_mpi.cpp</in>
+        <in>comm_qmp.cpp</in>
+        <in>comm_single.cpp</in>
+        <in>copy_quda.cu</in>
+        <in>cpu_color_spinor_field.cpp</in>
+        <in>cpu_gauge_field.cpp</in>
+        <in>cuda_color_spinor_field.cu</in>
+        <in>cuda_gauge_field.cpp</in>
+        <in>dirac.cpp</in>
+        <in>dirac_clover.cpp</in>
+        <in>dirac_domain_wall.cpp</in>
+        <in>dirac_staggered.cpp</in>
+        <in>dirac_twisted_mass.cpp</in>
+        <in>dirac_wilson.cpp</in>
+        <in>dslash_constants.h</in>
+        <in>dslash_quda.cu</in>
+        <in>dslash_textures.h</in>
+        <in>dw_dslash_def.h</in>
+        <in>extend_compress.cu</in>
+        <in>face_buffer.cpp</in>
+        <in>face_mpi.cpp</in>
+        <in>face_qmp.cpp</in>
+        <in>fat_force_quda.cpp</in>
+        <in>fermion_force_quda.cu</in>
+        <in>force_common.h</in>
+        <in>gauge_field.cpp</in>
+        <in>gauge_force_core.h</in>
+        <in>gauge_force_quda.cu</in>
+        <in>hisq_force_macros.h</in>
+        <in>hisq_paths_force_core.h</in>
+        <in>hisq_paths_force_quda.cu</in>
+        <in>hw_quda.cpp</in>
+        <in>interface_quda.cpp</in>
+        <in>inv_bicgstab_quda.cpp</in>
+        <in>inv_cg_quda.cpp</in>
+        <in>inv_gcr_quda.cpp</in>
+        <in>inv_mr_quda.cpp</in>
+        <in>inv_mre.cpp</in>
+        <in>inv_multi_cg_quda.cpp</in>
+        <in>io_spinor.h</in>
+        <in>lattice_field.cpp</in>
+        <in>llfat_core.h</in>
+        <in>llfat_quda.cu</in>
+        <in>llfat_quda_itf.cpp</in>
+        <in>malloc.cpp</in>
+        <in>misc_helpers.cu</in>
+        <in>numa_affinity.cpp</in>
+        <in>pack_face_def.h</in>
+        <in>pack_gauge.h</in>
+        <in>pack_spinor.h</in>
+        <in>quda_fortran.F90</in>
+        <in>quda_matrix.h</in>
+        <in>read_clover.h</in>
+        <in>read_gauge.h</in>
+        <in>reduce_core.h</in>
+        <in>reduce_quda.cu</in>
+        <in>solver.cpp</in>
+        <in>staggered_dslash_def.h</in>
+        <in>svd_quda.h</in>
+        <in>timer.cpp</in>
+        <in>tm_dslash_def.h</in>
+        <in>transfer.cpp</in>
+        <in>tune.cpp</in>
+        <in>unitarize_force_quda.cu</in>
+        <in>unitarize_links_quda.cu</in>
+        <in>util_quda.cpp</in>
+        <in>wilson_dslash_def.h</in>
+      </df>
+      <df name="tests">
+        <in>blas_reference.cpp</in>
+        <in>blas_reference.h</in>
+        <in>blas_test.cu</in>
+        <in>domain_wall_dslash_reference.cpp</in>
+        <in>domain_wall_dslash_reference.h</in>
+        <in>dslash_test.cpp</in>
+        <in>dslash_util.h</in>
+        <in>fermion_force_reference.cpp</in>
+        <in>fermion_force_reference.h</in>
+        <in>fermion_force_test.cpp</in>
+        <in>gauge_force_reference.cpp</in>
+        <in>gauge_force_reference.h</in>
+        <in>gauge_force_test.cpp</in>
+        <in>gauge_qio.cpp</in>
+        <in>gauge_qio.h</in>
+        <in>hisq_force_reference.cpp</in>
+        <in>hisq_force_reference.h</in>
+        <in>hisq_force_reference2.cpp</in>
+        <in>hisq_paths_force_test.cpp</in>
+        <in>hisq_unitarize_force_test.cpp</in>
+        <in>invert_test.cpp</in>
+        <in>layout_hyper.c</in>
+        <in>layout_hyper.h</in>
+        <in>llfat_reference.cpp</in>
+        <in>llfat_reference.h</in>
+        <in>llfat_test.cpp</in>
+        <in>misc.cpp</in>
+        <in>misc.h</in>
+        <in>pack_test.cpp</in>
+        <in>qio_util.cpp</in>
+        <in>qio_util.h</in>
+        <in>short.h</in>
+        <in>staggered_dslash_reference.cpp</in>
+        <in>staggered_dslash_reference.h</in>
+        <in>staggered_dslash_test.cpp</in>
+        <in>staggered_invert_test.cpp</in>
+        <in>su3_test.cpp</in>
+        <in>test_util.cpp</in>
+        <in>test_util.h</in>
+        <in>unitarize_link_test.cpp</in>
+        <in>wilson_dslash_reference.cpp</in>
+        <in>wilson_dslash_reference.h</in>
+      </df>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+      <itemPath>configure</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
+        <compilerSet>default</compilerSet>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <ccTool>
+            <incDir>
+              <pElem>/usr/lib/openmpi/include</pElem>
+              <pElem>/usr/lib/nvidia-cuda-toolkit//include</pElem>
+              <pElem>/usr//include/mpi</pElem>
+              <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+              <pElem>include</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>GPU_CLOVER_DIRAC</Elem>
+              <Elem>GPU_DIRECT</Elem>
+              <Elem>GPU_DOMAIN_WALL_DIRAC</Elem>
+              <Elem>GPU_STAGGERED_DIRAC</Elem>
+              <Elem>GPU_TWISTED_MASS_DIRAC</Elem>
+              <Elem>GPU_WILSON_DIRAC</Elem>
+              <Elem>MPI_COMMS</Elem>
+              <Elem>MULTI_GPU</Elem>
+              <Elem>NUMA_AFFINITY</Elem>
+              <Elem>POINTER_SIZE=8</Elem>
+              <Elem>__COMPUTE_CAPABILITY__=200</Elem>
+            </preprocessorList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+      <folder path="quda/lib">
+        <ccTool>
+          <incDir>
+            <pElem>lib</pElem>
+            <pElem>lib/dslash_core</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="quda/tests">
+        <ccTool>
+          <incDir>
+            <pElem>tests</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <item path="include/convert.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/double_single.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/enum_quda_fortran.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/fermion_force_quda.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/float_vector.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/gauge_force_quda.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/hisq_force_quda.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/inline_ptx.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/quda_new_interace.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="include/texture.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/blas_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/blas_quda.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/clover_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/clover_quda.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/comm_qmp.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="lib/comm_single.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="lib/copy_quda.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/cuda_color_spinor_field.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_constants.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_dagger_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_dagger_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_dagger_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/asym_wilson_clover_dslash_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/clover_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_core/dw_dslash_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_core/dw_dslash_dagger_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/staggered_dslash_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_dagger_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_dagger_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_dagger_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/tm_dslash_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_dagger_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_dagger_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_dagger_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_fermi_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_g80_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_dslash_gt200_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_pack_face_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_core/wilson_pack_face_dagger_core.h"
+            ex="true"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="lib/dslash_quda.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dslash_textures.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/dw_dslash_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/face_qmp.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="lib/gauge_force_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hisq_force_macros.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/hisq_paths_force_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/io_spinor.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/llfat_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/pack_face_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/pack_spinor.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/quda_fortran.F90" ex="true" tool="2" flavor2="0">
+      </item>
+      <item path="lib/quda_matrix.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/read_clover.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/reduce_core.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/reduce_quda.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lib/staggered_dslash_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/svd_quda.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/tm_dslash_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="lib/transfer.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="lib/tune.cpp" ex="false" tool="1" flavor2="0">
+        <ccTool>
+          <preprocessorList>
+            <Elem>QUDA_HASH="cpu_arch=x86_64,gpu_arch=sm_20"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="lib/wilson_dslash_def.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/blas_test.cu" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="tests/fermion_force_reference.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/fermion_force_reference.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/fermion_force_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/gauge_force_reference.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/gauge_force_reference.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/gauge_force_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/gauge_qio.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/hisq_force_reference.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/hisq_force_reference.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/hisq_force_reference2.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/hisq_paths_force_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/hisq_unitarize_force_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/layout_hyper.c" ex="true" tool="0" flavor2="0">
+      </item>
+      <item path="tests/layout_hyper.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/llfat_reference.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/llfat_reference.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/llfat_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/qio_util.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+      <item path="tests/qio_util.h" ex="true" tool="3" flavor2="0">
+      </item>
+      <item path="tests/unitarize_link_test.cpp" ex="true" tool="1" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
