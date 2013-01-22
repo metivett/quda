@@ -150,7 +150,7 @@ namespace quda {
     printf("Malloc size = %d in device %d \n", size, *d);
     cudaError_t err = cudaMalloc(&ptr, size);
     if (err != cudaSuccess) {
-      printfQuda("ERROR: Failed to allocate device memory (%s:%d in %s())\n", file, line, func);
+      printfQuda("ERROR: Failed to allocate device %d memory (%s:%d in %s())\n", *d, file, line, func);
       errorQuda("Aborting");
     }
     track_malloc(DEVICE, a, ptr);
