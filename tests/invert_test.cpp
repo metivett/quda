@@ -293,7 +293,7 @@ int main(int argc, char **argv)
 
   // initialize the QUDA library
   initQuda(device);
-
+printf("L296 reached! \n");
   // load the gauge field
   loadGaugeQuda((void*)gauge, &gauge_param);
 
