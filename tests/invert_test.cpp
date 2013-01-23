@@ -234,7 +234,7 @@ int main(int argc, char **argv)
   size_t sSize = (inv_param.cpu_prec == QUDA_DOUBLE_PRECISION) ? sizeof(double) : sizeof(float);
 
   void *gauge[4], *clover_inv=0, *clover=0;
-
+  printf("V = %d \n", V);
   for (int dir = 0; dir < 4; dir++) {
     gauge[dir] = malloc(V*gaugeSiteSize*gSize);
   }
