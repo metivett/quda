@@ -165,6 +165,7 @@
         <in>hisq_force_reference2.cpp</in>
         <in>hisq_paths_force_test.cpp</in>
         <in>hisq_unitarize_force_test.cpp</in>
+        <in>invert.cpp</in>
         <in>invert_test.cpp</in>
         <in>layout_hyper.c</in>
         <in>layout_hyper.h</in>
@@ -216,13 +217,20 @@
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
           <executablePath></executablePath>
+          <cTool>
+            <incDir>
+              <pElem>/usr/lib/nvidia-cuda-toolkit//include</pElem>
+              <pElem>include</pElem>
+              <pElem>/usr/local/include</pElem>
+              <pElem>/usr/local/include/openmpi/ompi/mpi/cxx</pElem>
+            </incDir>
+          </cTool>
           <ccTool>
             <incDir>
-              <pElem>/usr/lib/openmpi/include</pElem>
               <pElem>/usr/lib/nvidia-cuda-toolkit//include</pElem>
-              <pElem>/usr//include/mpi</pElem>
-              <pElem>/usr/lib/openmpi/include/openmpi</pElem>
               <pElem>include</pElem>
+              <pElem>/usr/local/include</pElem>
+              <pElem>/usr/local/include/openmpi/ompi/mpi/cxx</pElem>
             </incDir>
             <preprocessorList>
               <Elem>GPU_CLOVER_DIRAC</Elem>
@@ -277,19 +285,11 @@
       </item>
       <item path="lib/blas_core.h" ex="true" tool="3" flavor2="0">
       </item>
-      <item path="lib/blas_quda.cu" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="lib/clover_def.h" ex="true" tool="3" flavor2="0">
-      </item>
-      <item path="lib/clover_quda.cu" ex="false" tool="3" flavor2="0">
       </item>
       <item path="lib/comm_qmp.cpp" ex="true" tool="1" flavor2="0">
       </item>
       <item path="lib/comm_single.cpp" ex="true" tool="1" flavor2="0">
-      </item>
-      <item path="lib/copy_quda.cu" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="lib/cuda_color_spinor_field.cu" ex="false" tool="3" flavor2="0">
       </item>
       <item path="lib/dslash_constants.h" ex="true" tool="3" flavor2="0">
       </item>
@@ -409,8 +409,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="lib/dslash_quda.cu" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="lib/dslash_textures.h" ex="true" tool="3" flavor2="0">
       </item>
       <item path="lib/dw_dslash_def.h" ex="true" tool="3" flavor2="0">
@@ -439,8 +437,6 @@
       </item>
       <item path="lib/reduce_core.h" ex="true" tool="3" flavor2="0">
       </item>
-      <item path="lib/reduce_quda.cu" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="lib/staggered_dslash_def.h" ex="true" tool="3" flavor2="0">
       </item>
       <item path="lib/svd_quda.h" ex="true" tool="3" flavor2="0">
@@ -457,8 +453,6 @@
         </ccTool>
       </item>
       <item path="lib/wilson_dslash_def.h" ex="true" tool="3" flavor2="0">
-      </item>
-      <item path="tests/blas_test.cu" ex="false" tool="3" flavor2="0">
       </item>
       <item path="tests/fermion_force_reference.cpp" ex="true" tool="1" flavor2="0">
       </item>
