@@ -403,9 +403,10 @@ printf("L309 reached! \n");
     }
     FILE * resFile;
     resFile = fopen("conf_results", "w");
+    setOutputFile(resFile);
     for (int X = 0; X < V; ++X){
     fprintf(resFile, "Propagator at x = (%d): ", X);
-    fprintSpinorElement(resFile, spinorOut, X, inv_param.cpu_prec);
+    printSpinorElement(spinorOut, X, inv_param.cpu_prec);
     };
     fclose(resFile);
 
