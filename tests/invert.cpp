@@ -163,7 +163,7 @@ int main(int argc, char **argv)
     inv_param.inv_type = QUDA_BICGSTAB_INVERTER;
   }
 
-  inv_param.gcrNkrylov = 10;
+  inv_param.gcrNkrylov = 100;
   inv_param.tol = 1e-13;
   //inv_param.residual_type = QUDA_HEAVY_QUARK_RESIDUAL;
   // these can be set individually
