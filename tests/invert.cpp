@@ -401,10 +401,13 @@ printf("L309 reached! \n");
       }
 
     }
+    FILE * resFile;
+    resFile = fopen("conf_results", "w");
     for (int X = 0; X < V; ++X){
-    printf("Propagator at x = (%d): ", X);
-    printSpinorElement(spinorOut, X, inv_param.cpu_prec);
+    fprintf(resFile, "Propagator at x = (%d): ", X);
+    fprintSpinorElement(resFile, spinorOut, X, inv_param.cpu_prec);
     };
+    fclose(resFile);
 
     mxpy(spinorIn, spinorCheck, V*spinorSiteSize*inv_param.Ls, inv_param.cpu_prec);
     double nrm2 = norm_2(spinorCheck, V*spinorSiteSize*inv_param.Ls, inv_param.cpu_prec);
