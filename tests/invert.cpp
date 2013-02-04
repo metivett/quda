@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
   if (dslash_type == QUDA_TWISTED_MASS_DSLASH) {
     inv_param.mu = 0.004;
-    inv_param.twist_flavor = QUDA_TWIST_MINUS;
+    inv_param.twist_flavor = QUDA_TWIST_PLUS;
   } else if (dslash_type == QUDA_DOMAIN_WALL_DSLASH) {
     inv_param.mass = 0.02;
     inv_param.m5 = -1.8;
