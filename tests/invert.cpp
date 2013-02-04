@@ -164,7 +164,7 @@ int main(int argc, char **argv)
   }
 
   inv_param.gcrNkrylov = 10;
-  inv_param.tol = 1e-9;
+  inv_param.tol = 1e-13;
   //inv_param.residual_type = QUDA_HEAVY_QUARK_RESIDUAL;
   // these can be set individually
   for (int i=0; i<inv_param.num_offset; i++) inv_param.tol_offset[i] = inv_param.tol;
