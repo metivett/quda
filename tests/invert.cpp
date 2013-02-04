@@ -408,6 +408,7 @@ printf("L309 reached! \n");
     fprintf(resFile, "Propagator at x = (%d): ", X);
     printSpinorElement(spinorOut, X, inv_param.cpu_prec);
     };
+    setOutputFile(stdout);
     fclose(resFile);
 
     mxpy(spinorIn, spinorCheck, V*spinorSiteSize*inv_param.Ls, inv_param.cpu_prec);
