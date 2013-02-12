@@ -1087,6 +1087,10 @@ void invertQuda(void *hp_x, void *hp_b, QudaInvertParam *param)
 
   const int *X = cudaGauge->X();
 
+  // Print dimensions of the gauge
+  for (int d=0; d < 4; ++d)
+	  printfQuda("Gauge dims : X[%i]=%i \n", d, X[d]);
+
   // wrap CPU host side pointers
   ColorSpinorParam cpuParam(hp_b, param->input_location, *param, X, pc_solution);
   ColorSpinorField *h_b = (param->input_location == QUDA_CPU_FIELD_LOCATION) ?
@@ -1099,6 +1103,11 @@ void invertQuda(void *hp_x, void *hp_b, QudaInvertParam *param)
   // download source
   ColorSpinorParam cudaParam(cpuParam, *param);
   cudaParam.create = QUDA_COPY_FIELD_CREATE;
+
+  // Print dimensions of the cudaColorSpinorField
+    for (int d=0; d < 4; ++d)
+  	  printfQuda("cudaColorSpinorField dims : X[%i]=%i \n", d, cudaParam.x[d]);
+
   b = new cudaColorSpinorField(*h_b, cudaParam); 
 
   if (param->use_init_guess == QUDA_USE_INIT_GUESS_YES) { // download initial guess
